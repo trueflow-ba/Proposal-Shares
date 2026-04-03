@@ -1,0 +1,1202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Generated Proposal</title>
+  <style>
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --navy: #1a2744;
+      --blue: #2563eb;
+      --light-blue: #eff6ff;
+      --accent: #f59e0b;
+      --green: #16a34a;
+      --text: #1e293b;
+      --muted: #64748b;
+      --border: #e2e8f0;
+      --card-bg: #f8fafc;
+      --font-size-base: 15px;
+    }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      font-size: var(--font-size-base);
+      color: var(--text);
+      background: #f1f5f9;
+      line-height: 1.6;
+    }
+
+    [contenteditable]:hover { outline: 1px dashed #93c5fd; border-radius: 3px; cursor: text; }
+    [contenteditable]:focus { outline: 2px solid var(--blue); border-radius: 3px; }
+    [contenteditable="false"]:hover,
+    [contenteditable="false"]:focus { outline: none !important; cursor: default; }
+
+    /* === TOOLBAR === */
+    .toolbar {
+      position: sticky; top: 0; z-index: 100;
+      background: var(--navy); color: white;
+      padding: 10px 20px;
+      display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+    }
+    .toolbar-title { font-size: 12px; font-weight: 600; color: #94a3b8; flex: 1; min-width: 160px; }
+    .toolbar-btn {
+      background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2);
+      color: white; padding: 5px 12px; border-radius: 5px; cursor: pointer;
+      font-size: 12px; white-space: nowrap; transition: background 0.2s;
+    }
+    .toolbar-btn:hover { background: rgba(255,255,255,0.2); }
+    .toolbar-btn.pb-btn { background: rgba(99,102,241,0.25); border-color: rgba(129,140,248,0.5); }
+    .toolbar-btn.pb-btn:hover { background: rgba(99,102,241,0.45); }
+    .toolbar-btn.share-btn { background: rgba(37,99,235,0.35); border-color: rgba(96,165,250,0.5); }
+    .toolbar-btn.share-btn:hover { background: rgba(37,99,235,0.55); }
+    .toolbar-divider { width: 1px; height: 24px; background: rgba(255,255,255,0.2); margin: 0 2px; }
+
+    /* === SHARE BANNER (shown in share/recipient mode) === */
+    .share-banner {
+      background: var(--navy); color: white;
+      text-align: center; padding: 11px 20px;
+      font-size: 13px; font-weight: 500; line-height: 1.5;
+    }
+    .share-banner em { color: #94a3b8; font-style: normal; font-size: 12px; }
+
+    /* === MODAL === */
+    .modal-overlay {
+      position: fixed; inset: 0;
+      background: rgba(15,23,42,0.65);
+      z-index: 9999;
+      display: flex; align-items: center; justify-content: center;
+      padding: 20px;
+      backdrop-filter: blur(3px);
+    }
+    .modal-box {
+      background: white; border-radius: 14px;
+      width: 100%; max-width: 500px; max-height: 88vh;
+      overflow-y: auto;
+      box-shadow: 0 24px 64px rgba(0,0,0,0.3);
+    }
+    .modal-header {
+      padding: 18px 22px 14px; border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; gap: 10px;
+      position: sticky; top: 0; background: white;
+      border-radius: 14px 14px 0 0; z-index: 2;
+    }
+    .modal-header h3 { font-size: 16px; font-weight: 700; color: var(--navy); flex: 1; }
+    .modal-close-btn {
+      background: #f1f5f9; border: none;
+      width: 28px; height: 28px; border-radius: 50%;
+      font-size: 15px; cursor: pointer; color: var(--muted);
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 700; transition: background 0.2s;
+    }
+    .modal-close-btn:hover { background: #e2e8f0; color: var(--text); }
+    .modal-body { padding: 18px 22px 22px; }
+    .modal-section { margin-bottom: 18px; }
+    .modal-section:last-child { margin-bottom: 0; }
+    .modal-lbl {
+      display: block; font-size: 11px; font-weight: 700;
+      color: var(--muted); text-transform: uppercase;
+      letter-spacing: 0.8px; margin-bottom: 6px;
+    }
+    .modal-inp {
+      width: 100%; padding: 8px 11px;
+      border: 1px solid var(--border); border-radius: 7px;
+      font-size: 13.5px; color: var(--text); font-family: inherit;
+      outline: none; transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .modal-inp:focus { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(37,99,235,0.1); }
+    .modal-field-hint { font-size: 11px; color: var(--muted); margin-top: 4px; }
+    .email-add-row { display: flex; gap: 8px; }
+    .email-add-row .modal-inp { flex: 1; }
+    .btn-add {
+      background: var(--blue); color: white; border: none;
+      padding: 8px 14px; border-radius: 7px;
+      font-size: 13px; font-weight: 600; cursor: pointer;
+      white-space: nowrap; transition: background 0.2s;
+    }
+    .btn-add:hover { background: #1d4ed8; }
+    .btn-add:disabled { background: #94a3b8; cursor: not-allowed; }
+    .chips-wrap { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+    .e-chip {
+      display: inline-flex; align-items: center; gap: 5px;
+      background: #eff6ff; border: 1px solid #bfdbfe;
+      border-radius: 20px; padding: 3px 8px 3px 11px;
+      font-size: 12px; color: #1e40af; font-weight: 500;
+    }
+    .e-chip-x {
+      background: none; border: none; color: #93c5fd;
+      cursor: pointer; font-size: 14px; padding: 0;
+      line-height: 1; font-weight: 800;
+    }
+    .e-chip-x:hover { color: #2563eb; }
+    .link-box {
+      background: #f8fafc; border: 1px solid var(--border);
+      border-radius: 7px; padding: 10px 13px;
+      font-size: 11.5px; font-family: 'Courier New', monospace;
+      color: var(--navy); word-break: break-all; line-height: 1.55;
+      margin-bottom: 10px; user-select: all;
+    }
+    .link-btn-row { display: flex; gap: 8px; flex-wrap: wrap; }
+    .btn-copy-link {
+      background: var(--navy); color: white; border: none;
+      padding: 7px 15px; border-radius: 7px;
+      font-size: 12.5px; font-weight: 600; cursor: pointer;
+      transition: background 0.2s;
+    }
+    .btn-copy-link:hover { background: #0f172a; }
+    .btn-copy-link.copied { background: var(--green); }
+    .btn-regen {
+      background: var(--card-bg); color: var(--text);
+      border: 1px solid var(--border);
+      padding: 7px 13px; border-radius: 7px;
+      font-size: 12.5px; font-weight: 600;
+      cursor: pointer; transition: background 0.2s;
+    }
+    .btn-regen:hover { background: #e2e8f0; }
+    .modal-warn {
+      background: #fffbeb; border: 1px solid #fde68a;
+      border-left: 4px solid var(--accent); border-radius: 8px;
+      padding: 12px 14px; font-size: 12px; color: #78350f; line-height: 1.65;
+    }
+    .modal-warn strong { display: block; margin-bottom: 3px; font-size: 12.5px; color: #92400e; }
+
+    /* === INTERACTIVE SIGNATURE (share / recipient mode) === */
+    .sig-click-area {
+      min-height: 54px; border: 2px dashed #c7d2fe;
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; transition: border-color 0.2s, background 0.2s;
+      margin-bottom: 8px; background: #fafbff; padding: 8px 12px;
+    }
+    .sig-click-area:hover { border-color: var(--blue); background: #eff6ff; }
+    .sig-click-ph {
+      font-size: 13px; color: #a5b4fc;
+      font-style: italic; pointer-events: none; text-align: center;
+    }
+    .sig-inp-wrap { display: flex; flex-direction: column; gap: 8px; margin-bottom: 8px; }
+    .sig-type-inp {
+      width: 100%; padding: 7px 10px;
+      border: 1px solid var(--border); border-radius: 6px;
+      font-size: 13px; font-family: inherit;
+      outline: none; box-sizing: border-box; transition: border-color 0.2s;
+    }
+    .sig-type-inp:focus { border-color: var(--blue); }
+    .sig-cursive {
+      font-family: cursive; font-size: 28px; color: var(--navy);
+      padding: 4px 4px 2px; border-bottom: 1.5px solid #c7d2fe;
+      min-height: 44px; line-height: 1.2;
+    }
+    .sig-action-row { display: flex; gap: 8px; align-items: center; }
+    .btn-sign-doc {
+      background: var(--green); color: white; border: none;
+      padding: 7px 16px; border-radius: 6px;
+      font-size: 12.5px; font-weight: 700; cursor: pointer;
+      transition: background 0.2s;
+    }
+    .btn-sign-doc:hover { background: #15803d; }
+    .btn-sign-doc:disabled { background: #94a3b8; cursor: not-allowed; }
+    .btn-clr-sig {
+      background: none; border: none; color: var(--muted);
+      font-size: 12px; cursor: pointer; text-decoration: underline; padding: 0;
+    }
+    .sig-final-wrap { margin-bottom: 8px; }
+    .sig-final-name {
+      font-family: cursive; font-size: 32px; color: var(--navy);
+      border-bottom: 2px solid var(--navy); padding-bottom: 2px;
+      display: inline-block; min-width: 180px;
+    }
+    .sig-final-badge {
+      display: inline-flex; align-items: center; gap: 4px;
+      background: #f0fdf4; border: 1px solid #86efac;
+      border-radius: 4px; padding: 2px 8px;
+      font-size: 11px; color: var(--green); font-weight: 700;
+      margin-left: 10px; vertical-align: middle;
+      font-family: 'Segoe UI', system-ui, sans-serif;
+    }
+
+    /* === WRAPPER === */
+    .doc-wrapper { max-width: 900px; margin: 30px auto; padding: 0 20px 60px; }
+
+    /* === COVER === */
+    .cover {
+      background: var(--navy); color: white;
+      padding: 48px 48px 40px; border-radius: 12px 12px 0 0; text-align: center;
+    }
+    .cover-badge {
+      display: inline-block; background: var(--blue); color: white;
+      font-size: 11px; font-weight: 700; letter-spacing: 1.5px;
+      text-transform: uppercase; padding: 4px 14px; border-radius: 20px; margin-bottom: 20px;
+    }
+    .cover h1 { font-size: 32px; font-weight: 800; margin-bottom: 8px; letter-spacing: -0.5px; }
+    .cover-tagline { font-size: 15px; color: #94a3b8; font-style: italic; margin: 14px 0 28px; }
+    .cover-meta {
+      display: grid; grid-template-columns: 1fr 1px 1fr;
+      background: rgba(255,255,255,0.05); border-radius: 8px;
+      padding: 20px; text-align: left; max-width: 560px; margin: 0 auto 24px;
+    }
+    .cover-meta-divider { background: rgba(255,255,255,0.15); }
+    .cover-meta-item { padding: 0 20px; }
+    .cover-meta-label { font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: #94a3b8; margin-bottom: 4px; }
+    .cover-meta-value { font-size: 14px; font-weight: 600; color: white; }
+    .cover-meta-sub { font-size: 12px; color: #94a3b8; }
+    .cover-id { font-size: 11px; color: #64748b; }
+
+    /* === SECTIONS === */
+    .section {
+      background: white; padding: 40px 48px;
+      border-left: 1px solid var(--border); border-right: 1px solid var(--border); border-bottom: 1px solid var(--border);
+    }
+    .exec-summary {
+      background: white; padding: 40px 48px;
+      border-left: 1px solid var(--border); border-right: 1px solid var(--border); border-bottom: 1px solid var(--border);
+    }
+    .exec-summary h2 { font-size: 22px; font-weight: 700; color: var(--navy); margin-bottom: 16px; }
+    .exec-summary p { margin-bottom: 14px; line-height: 1.75; }
+    .section-header { display: flex; align-items: center; gap: 14px; margin-bottom: 24px; }
+    .section-number {
+      width: 36px; height: 36px; min-width: 36px; background: var(--navy); color: white;
+      font-size: 16px; font-weight: 800; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+    }
+    .section-title { font-size: 22px; font-weight: 700; color: var(--navy); }
+    .section-intro { margin-bottom: 20px; line-height: 1.75; }
+
+    /* === PILLARS === */
+    .pillars { display: flex; flex-direction: column; gap: 12px; margin-top: 20px; }
+    .pillar { padding: 14px 18px; background: var(--light-blue); border-left: 4px solid var(--blue); border-radius: 6px; font-size: 14px; line-height: 1.65; }
+    .pillar-title { font-weight: 700; color: var(--navy); }
+
+    /* === CAPABILITY CARDS === */
+    .capabilities-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin-top: 20px; }
+    .cap-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 8px; padding: 18px 20px; }
+    .cap-card-header { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+    .cap-icon { font-size: 20px; }
+    .cap-title { font-weight: 700; font-size: 14px; color: var(--navy); }
+    .cap-text { font-size: 13px; color: var(--muted); line-height: 1.6; }
+
+    /* === CLARITY BOX === */
+    .clarity-box {
+      background: #fffbeb; border: 1px solid #fde68a;
+      border-left: 4px solid var(--accent); border-radius: 8px;
+      padding: 20px 24px; margin-top: 28px;
+    }
+    .clarity-box h3 { font-size: 15px; font-weight: 700; color: #92400e; margin-bottom: 10px; }
+    .clarity-box p { font-size: 14px; color: #78350f; line-height: 1.7; }
+
+    /* === PLATFORM STACK === */
+    .platform-stack { display: flex; flex-direction: column; gap: 12px; margin: 20px 0; }
+    .platform-item { padding: 14px 18px; background: var(--card-bg); border: 1px solid var(--border); border-radius: 8px; font-size: 14px; line-height: 1.65; }
+    .platform-item strong { color: var(--navy); }
+
+    /* === SANDBOX BOX === */
+    .sandbox-box { background: #f0f9ff; border: 1px solid #bae6fd; border-left: 4px solid #0ea5e9; border-radius: 8px; padding: 18px 22px; margin-top: 20px; font-size: 14px; color: #0c4a6e; line-height: 1.7; }
+    .sandbox-box h3 { font-size: 15px; font-weight: 700; margin-bottom: 8px; }
+
+    /* === CALL FLOW === */
+    .call-flow { background: var(--navy); color: white; border-radius: 10px; padding: 28px 32px; margin-top: 24px; font-size: 13px; }
+    .call-flow-title { font-size: 13px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 14px; }
+    .call-flow-entry { text-align: center; font-size: 14px; font-weight: 600; padding: 10px; background: rgba(255,255,255,0.07); border-radius: 6px; margin-bottom: 6px; }
+    .flow-arrow { text-align: center; color: #94a3b8; margin: 4px 0; font-size: 16px; }
+    .flow-options { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 8px 0; }
+    .flow-option { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 16px; }
+    .flow-option h4 { font-size: 12px; font-weight: 700; color: #60a5fa; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 12px; }
+    .flow-time { font-size: 11px; color: var(--accent); font-weight: 600; text-transform: uppercase; letter-spacing: 0.8px; margin: 10px 0 5px; }
+    .flow-step { font-size: 12px; color: #cbd5e1; padding: 2px 0; }
+    .flow-action-item { font-size: 12px; color: #86efac; padding: 2px 0; }
+    .flow-footer { margin-top: 14px; padding-top: 14px; border-top: 1px solid rgba(255,255,255,0.1); }
+    .flow-footer-note { text-align: center; font-size: 11px; color: #64748b; font-style: italic; margin-bottom: 4px; }
+    .flow-footer-step { text-align: center; padding: 10px; font-size: 13px; color: #e2e8f0; background: rgba(37,99,235,0.3); border-radius: 6px; margin: 4px 0; }
+    .flow-footer-step.alert { background: rgba(245,158,11,0.2); color: #fde68a; font-size: 12px; }
+
+    /* === ZAPIER TABLE === */
+    .zapier-table { width: 100%; border-collapse: collapse; margin-top: 16px; font-size: 13px; }
+    .zapier-table tr { border-bottom: 1px solid var(--border); }
+    .zapier-table td { padding: 11px 14px; vertical-align: top; }
+    .zapier-table td:first-child { font-weight: 700; color: white; background: var(--navy); width: 90px; border-radius: 4px; white-space: nowrap; }
+    .zapier-table td:nth-child(2) { color: var(--muted); background: var(--card-bg); }
+
+    /* === TIMELINE === */
+    .timeline { display: flex; flex-direction: column; gap: 18px; margin-top: 24px; }
+    .timeline-phase { border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+    .phase-header { background: var(--navy); color: white; padding: 14px 20px; display: flex; align-items: center; gap: 14px; }
+    .phase-number { width: 32px; height: 32px; min-width: 32px; background: var(--blue); color: white; font-weight: 800; font-size: 15px; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+    .phase-title { font-weight: 700; font-size: 16px; }
+    .phase-days { margin-left: auto; font-size: 12px; color: #94a3b8; white-space: nowrap; }
+    .phase-body { padding: 18px 20px; background: white; }
+    .phase-items { list-style: none; display: flex; flex-direction: column; gap: 8px; }
+    .phase-items li { font-size: 13.5px; padding-left: 20px; position: relative; color: var(--text); line-height: 1.55; }
+    .phase-items li::before { content: '→'; position: absolute; left: 0; color: var(--blue); font-weight: 700; }
+
+    /* === PRICING TABLE === */
+    .pricing-table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 14px; }
+    .pricing-table th { background: var(--navy); color: white; padding: 12px 16px; text-align: left; font-size: 12px; letter-spacing: 0.5px; }
+    .pricing-table th:nth-child(3), .pricing-table th:nth-child(4) { text-align: right; }
+    .pricing-table td { padding: 13px 16px; border-bottom: 1px solid var(--border); vertical-align: top; }
+    .pricing-table td:nth-child(3), .pricing-table td:nth-child(4) { text-align: right; font-weight: 600; white-space: nowrap; }
+    .pricing-table tr:nth-child(even) td { background: var(--card-bg); }
+    .pricing-table .total-row td { background: #eff6ff; font-weight: 700; color: var(--navy); border-top: 2px solid var(--blue); }
+    .pricing-table .discount-row td { background: #fefce8; color: #92400e; }
+    .line-item-title { font-weight: 600; color: var(--navy); margin-bottom: 3px; }
+    .line-item-desc { font-size: 12px; color: var(--muted); line-height: 1.5; }
+
+    /* === PAYMENT === */
+    .payment-note { background: #f0fdf4; border: 1px solid #86efac; border-left: 4px solid var(--green); border-radius: 8px; padding: 16px 20px; margin-top: 20px; font-size: 13.5px; color: #14532d; line-height: 1.7; }
+    .payment-note strong { display: block; font-size: 14px; margin-bottom: 6px; }
+
+    /* === WHY TRUEFLOW === */
+    .why-grid { display: grid; grid-template-columns: repeat(2,1fr); gap: 16px; margin-top: 24px; }
+    .why-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 8px; padding: 18px 20px; }
+    .why-card h3 { font-size: 14px; font-weight: 700; color: var(--navy); margin-bottom: 8px; }
+    .why-card p { font-size: 13px; color: var(--muted); line-height: 1.6; }
+
+    /* === GET STARTED === */
+    .get-started-steps { display: flex; flex-direction: column; gap: 14px; margin-top: 22px; }
+    .get-started-step { display: flex; gap: 16px; align-items: flex-start; }
+    .step-num { width: 32px; height: 32px; min-width: 32px; background: var(--blue); color: white; font-weight: 800; font-size: 14px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-top: 2px; }
+    .step-content { font-size: 14px; line-height: 1.65; flex: 1; }
+    .step-content strong { color: var(--navy); display: block; margin-bottom: 2px; }
+    .valid-through { margin-top: 24px; padding: 14px 20px; background: #eff6ff; border-radius: 8px; font-size: 14px; color: var(--navy); text-align: center; }
+    .contact-block { margin-top: 16px; padding: 16px 20px; background: var(--card-bg); border: 1px solid var(--border); border-radius: 8px; font-size: 14px; text-align: center; }
+    .contact-block a { color: var(--blue); text-decoration: none; }
+
+    /* === SIGNATURE === */
+    .signature-block { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-top: 32px; }
+    .sig-label { font-size: 12px; color: var(--muted); margin-bottom: 8px; }
+    .sig-line { height: 48px; border-bottom: 1px solid var(--border); margin-bottom: 8px; }
+    .sig-date { font-size: 12px; color: var(--muted); }
+
+    /* === APPENDIX === */
+    .appendix-header { background: #0f172a; color: white; padding: 32px 48px; }
+    .appendix-header h2 { font-size: 22px; font-weight: 700; margin-bottom: 6px; }
+    .appendix-header p { font-size: 14px; color: #94a3b8; }
+    .appendix-body { padding: 36px 48px; background: white; border-left: 1px solid var(--border); border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); border-radius: 0 0 12px 12px; }
+    .safeguard-block { margin-bottom: 36px; padding-bottom: 36px; border-bottom: 1px solid var(--border); }
+    .safeguard-block:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+    .safeguard-title { font-size: 18px; font-weight: 700; color: var(--navy); margin-bottom: 16px; }
+    .safeguard-body p { font-size: 14px; line-height: 1.75; margin-bottom: 12px; }
+    .safeguard-body strong { color: var(--navy); }
+    .kill-switch-list { list-style: none; display: flex; flex-direction: column; gap: 8px; margin: 14px 0; }
+    .kill-switch-list li { font-size: 13.5px; padding: 8px 14px; background: #f0fdf4; border-left: 3px solid var(--green); border-radius: 4px; color: #14532d; }
+
+    /* === FOOTER === */
+    .doc-footer { text-align: center; padding: 20px; font-size: 11px; color: var(--muted); line-height: 1.7; }
+
+    /* === PAGE BREAK SYSTEM === */
+    .pb-insert-zone { height: 24px; display: flex; align-items: center; justify-content: center; cursor: pointer; opacity: 0; transition: opacity 0.18s; }
+    .pb-insert-zone:hover { opacity: 1 !important; }
+    .pb-insert-inner { display: flex; align-items: center; gap: 6px; background: #eef2ff; border: 1px dashed #818cf8; border-radius: 20px; padding: 3px 16px; font-size: 11px; color: #4f46e5; font-weight: 700; white-space: nowrap; letter-spacing: 0.4px; pointer-events: none; }
+    .page-break-el { margin: 0; line-height: 0; }
+    .page-break-visual { display: flex; align-items: center; gap: 12px; padding: 8px 0; user-select: none; line-height: 1; }
+    .pb-line { flex: 1; border-top: 2px dashed #a5b4fc; }
+    .pb-badge { display: flex; align-items: center; gap: 8px; background: #eef2ff; border: 1px solid #c7d2fe; border-radius: 20px; padding: 5px 14px; font-size: 10px; font-weight: 700; color: #4338ca; text-transform: uppercase; letter-spacing: 1px; white-space: nowrap; }
+    .pb-remove-btn { background: none; border: none; color: #f87171; cursor: pointer; font-size: 15px; padding: 0 0 0 4px; line-height: 1; font-weight: 700; }
+    .pb-remove-btn:hover { color: #dc2626; }
+    .pb-trigger { display: block; height: 0; overflow: hidden; line-height: 0; font-size: 0; margin: 0; padding: 0; }
+
+    /* === RESPONSIVE === */
+    @media (max-width: 640px) {
+      .cover { padding: 28px 20px; }
+      .cover h1 { font-size: 22px; }
+      .cover-meta { grid-template-columns: 1fr; }
+      .cover-meta-divider { display: none; }
+      .exec-summary, .section { padding: 24px 20px; }
+      .capabilities-grid, .why-grid, .flow-options { grid-template-columns: 1fr; }
+      .signature-block { grid-template-columns: 1fr; }
+      .appendix-header, .appendix-body { padding: 24px 20px; }
+      .toolbar-title { display: none; }
+      .modal-box { max-width: 100%; }
+    }
+
+    /* === PRINT === */
+    @media print {
+      body { background: white; font-size: 13px; }
+      .toolbar, .pb-insert-zone, .page-break-visual, .modal-overlay, .share-banner { display: none !important; }
+      .pb-trigger { display: block !important; break-before: page !important; page-break-before: always !important; height: 0 !important; overflow: hidden !important; margin: 0 !important; padding: 0 !important; line-height: 0 !important; font-size: 0 !important; }
+      .doc-wrapper { margin: 0; padding: 0; max-width: 100%; }
+      .cover { border-radius: 0; }
+      .appendix-body { border-radius: 0; }
+      .section-solution { break-before: page; }
+      .section-architecture { break-before: page; }
+      .section-timeline { break-before: page; }
+      .section-investment { break-before: page; }
+      .section-why { break-before: page; }
+      .section-getstarted { break-before: page; }
+      .section-appendix { break-before: page; }
+      .safeguard-block + .safeguard-block { break-before: page; }
+      .cap-card, .pillar, .platform-item, .why-card, .get-started-step, .signature-block, .contact-block, .valid-through, .flow-option, .zapier-table tr, .pricing-table tr, .phase-items li, .kill-switch-list li { break-inside: avoid; page-break-inside: avoid; }
+      .call-flow, .capabilities-grid, .why-grid, .timeline-phase, .phase-body, .payment-note, .sandbox-box, .clarity-box, .kill-switch-list, .pillars, .platform-stack, .timeline, .get-started-steps { break-inside: auto !important; page-break-inside: auto !important; }
+      p { break-inside: auto !important; page-break-inside: auto !important; orphans: 3 !important; widows: 3 !important; }
+      h2, h3, h4, .section-title, .safeguard-title, .phase-title, .cap-title, .call-flow-title { break-after: avoid !important; page-break-after: avoid !important; }
+      .section, .exec-summary { padding-top: 28px; padding-bottom: 28px; border-left: none; border-right: none; margin-bottom: 0; }
+      [contenteditable]:hover, [contenteditable]:focus { outline: none; }
+      .cover, .phase-header, .appendix-header, .pricing-table th, .pricing-table .total-row td, .pricing-table .discount-row td, .section-number, .phase-number, .step-num, .pillar, .clarity-box, .sandbox-box, .payment-note, .kill-switch-list li, .call-flow, .flow-footer-step, .zapier-table td:first-child { -webkit-print-color-adjust: exact; print-color-adjust: exact; color-adjust: exact; }
+      @page { size: letter portrait; margin: 0.75in; }
+    }
+
+    /* ============================================================
+       GITHUB PAGES SHARING — ADDED
+       ============================================================ */
+    .gh-section-divider {
+      border-top: 1px solid var(--border);
+      padding-top: 18px; margin-top: 4px;
+    }
+    .gh-section-heading {
+      display: flex; align-items: center; gap: 8px; margin-bottom: 8px;
+    }
+    .gh-section-heading span {
+      font-size: 13px; font-weight: 700; color: var(--navy);
+    }
+    .gh-section-desc {
+      font-size: 12px; color: var(--muted); line-height: 1.6; margin-bottom: 12px;
+    }
+    .gh-creds-row {
+      display: flex; align-items: center; gap: 8px;
+      flex-wrap: wrap; margin-bottom: 10px;
+    }
+    .gh-creds-badge {
+      display: inline-flex; align-items: center; gap: 5px;
+      background: #f0fdf4; border: 1px solid #86efac;
+      border-radius: 5px; padding: 3px 10px;
+      font-size: 11.5px; color: var(--green); font-weight: 600;
+    }
+    .gh-creds-badge-none {
+      display: inline-flex; align-items: center; gap: 5px;
+      background: #fefce8; border: 1px solid #fde68a;
+      border-radius: 5px; padding: 3px 10px;
+      font-size: 11.5px; color: #92400e; font-weight: 600;
+    }
+    .btn-gh-upload {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: #24292f; color: white; border: none;
+      padding: 8px 16px; border-radius: 7px;
+      font-size: 12.5px; font-weight: 600; cursor: pointer;
+      transition: background 0.2s; font-family: inherit;
+    }
+    .btn-gh-upload:hover { background: #1c2128; }
+    .gh-status-box {
+      border-radius: 8px; padding: 12px 14px;
+      display: flex; gap: 10px; align-items: flex-start;
+    }
+    .gh-status-loading { background: #eff6ff; border: 1px solid #bfdbfe; }
+    .gh-status-success { background: #f0fdf4; border: 1px solid #86efac; }
+    .gh-status-error   { background: #fef2f2; border: 1px solid #fecaca; }
+    .gh-status-title { font-size: 13px; font-weight: 700; color: var(--navy); margin-bottom: 3px; }
+    .gh-status-sub { font-size: 11.5px; color: var(--muted); line-height: 1.5; }
+    .gh-spinner {
+      width: 16px; height: 16px; flex-shrink: 0; margin-top: 2px;
+      border: 2px solid #bfdbfe; border-top-color: var(--blue);
+      border-radius: 50%; display: inline-block;
+      animation: ghSpin 0.75s linear infinite;
+    }
+    @keyframes ghSpin { to { transform: rotate(360deg); } }
+    .gh-icon-btn {
+      background: none; border: none; color: var(--muted);
+      cursor: pointer; font-size: 14px; padding: 0 0 0 4px;
+      line-height: 1; flex-shrink: 0; transition: color 0.15s;
+    }
+    .gh-icon-btn:hover { color: var(--text); }
+
+
+
+    /* Published page specific styles */
+    .doc-wrapper { 
+      max-width: 900px; 
+      margin: 30px auto; 
+      padding: 0 20px 60px; 
+    }
+    
+    /* Accept Button Styles */
+    .accept-section {
+      margin-top: 32px;
+      text-align: center;
+      padding: 30px;
+      background: linear-gradient(135deg, #f0fdf4 0%, #eff6ff 100%);
+      border: 2px solid #86efac;
+      border-radius: 12px;
+    }
+    .accept-section.accepted {
+      background: linear-gradient(135deg, #eff6ff 0%, #f0fdf4 100%);
+      border-color: #93c5fd;
+    }
+    .accept-section h3 {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--navy);
+      margin-bottom: 16px;
+    }
+    .accepted-info {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+    }
+    .accepted-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: linear-gradient(135deg, #16a34a 0%, #22c55e 100%);
+      color: white;
+      padding: 12px 28px;
+      border-radius: 10px;
+      font-size: 18px;
+      font-weight: 700;
+    }
+    .accepted-date {
+      font-size: 13px;
+      color: var(--muted);
+    }
+    .btn-accept {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      background: linear-gradient(135deg, #16a34a 0%, #15803d 100%);
+      color: white;
+      border: none;
+      padding: 16px 40px;
+      border-radius: 10px;
+      font-size: 18px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 15px rgba(22, 163, 74, 0.3);
+    }
+    .btn-accept:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(22, 163, 74, 0.4);
+    }
+    .btn-accept:active {
+      transform: translateY(0);
+    }
+    
+    /* Success Modal */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.7);
+      backdrop-filter: blur(4px);
+      z-index: 9999;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.3s ease;
+    }
+    .modal-overlay.active {
+      opacity: 1;
+      visibility: visible;
+    }
+    .success-modal {
+      background: white;
+      border-radius: 16px;
+      padding: 40px;
+      max-width: 480px;
+      width: 100%;
+      text-align: center;
+      box-shadow: 0 25px 50px rgba(0, 0, 0, 0.25);
+      transform: scale(0.9);
+      transition: transform 0.3s ease;
+    }
+    .modal-overlay.active .success-modal {
+      transform: scale(1);
+    }
+    .success-icon {
+      width: 80px;
+      height: 80px;
+      background: linear-gradient(135deg, #16a34a 0%, #22c55e 100%);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 24px;
+      font-size: 40px;
+      color: white;
+    }
+    .success-modal h2 {
+      font-size: 24px;
+      font-weight: 800;
+      color: var(--navy);
+      margin-bottom: 16px;
+    }
+    .success-modal p {
+      font-size: 15px;
+      line-height: 1.7;
+      color: var(--text);
+      margin-bottom: 24px;
+    }
+    .success-modal .highlight {
+      background: #f0fdf4;
+      border: 1px solid #86efac;
+      border-radius: 8px;
+      padding: 16px;
+      font-size: 14px;
+      color: #14532d;
+    }
+    .btn-close-modal {
+      margin-top: 24px;
+      background: var(--navy);
+      color: white;
+      border: none;
+      padding: 12px 32px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .btn-close-modal:hover {
+      background: #0f172a;
+    }
+    
+    @media print {
+      body { background: white; }
+      .no-print { display: none !important; }
+      .accept-section { break-inside: avoid; }
+    }
+  </style>
+</head>
+<body>
+  
+<div class="doc-wrapper">
+
+<div class="cover">
+<div class="cover-badge" contenteditable="true">Confidential Proposal</div>
+<h1 contenteditable="true">Personalized AI Receptionist Solution Tailored for Doobear's Success</h1>
+<div class="cover-tagline" contenteditable="true">"Revolutionizing Caller Experience and Lead Capture for Doobear's"</div>
+<div class="cover-meta">
+<div class="cover-meta-item">
+<div class="cover-meta-label" contenteditable="true">Prepared For</div>
+<div class="cover-meta-value" contenteditable="true">Jack Tester</div>
+</div>
+<div class="cover-meta-divider"></div>
+<div class="cover-meta-item">
+<div class="cover-meta-label" contenteditable="true">Prepared By</div>
+<div class="cover-meta-value" contenteditable="true">Jonathan McComb</div>
+<div class="cover-meta-sub" contenteditable="true">TrueFlow Business Automations</div>
+</div>
+</div>
+<div class="cover-id" contenteditable="true">Proposal ID: TFLOW-2026-2026-D-001 · Confidential</div>
+</div>
+
+<div class="exec-summary">
+<h2 contenteditable="true">Executive Summary: Elevating Doobear's Service Experience</h2>
+<p contenteditable="true">Doobear's is a leading home services company specializing in flooring and repair/restoration services. Despite offering exceptional in-person service, the business faces challenges with managing incoming calls effectively. Currently, the phone line is answered by a family member, and their AI voice system is unable to accurately capture client information or establish meaningful rapport. These pain points, coupled with the absence of an effective webchat solution, result in lost leads, missed revenue opportunities, and diminished client satisfaction.</p>
+<p contenteditable="true">Our solution is designed to address these exact challenges by implementing an advanced AI receptionist tailored to Doobear's unique requirements. By combining state-of-the-art conversational AI with seamless integration into tools like Jobber and RingCentral, we ensure precise lead qualification, rapport-building interactions, and seamless appointment booking. This enables your team to focus on what they do best—providing outstanding home services—while we handle the client engagement process.</p>
+<p contenteditable="true">Our partnership will focus on three key pillars: redefining client interactions through AI-driven personalization, maximizing lead capture with accurate information handling, and empowering Doobear's operational workflow with seamless system integration.</p>
+<div class="pillars">
+<div class="pillar" contenteditable="true"><span class="pillar-title" contenteditable="true">AI-Powered Personalization — </span>We will prioritize creating a virtual receptionist that mirrors the warmth and professionalism clients expect when contacting Doobear's, ensuring every interaction builds client trust and loyalty.</div>
+<div class="pillar" contenteditable="true"><span class="pillar-title" contenteditable="true">Accurate Lead Capture — </span>Our solution ensures precise data collection during every call, eliminating the frustration caused by your previous AI system's shortcomings.</div>
+<div class="pillar" contenteditable="true"><span class="pillar-title" contenteditable="true">Tool Integration and Efficiency — </span>Designed to work flawlessly with Jobber for job management and RingCentral for phones, our AI enhances workflow efficiency while maintaining data consistency across platforms.</div>
+</div>
+</div>
+
+<div class="section section-solution">
+<div class="section-header">
+<div class="section-number"></div>
+<div class="section-title" contenteditable="true">The AI Receptionist Solution for Doobear's</div>
+</div>
+<p class="section-intro" contenteditable="true">We propose implementing a high-quality AI receptionist specifically tailored to meet Doobear's business needs. This solution will establish rapport with callers, capture accurate client information, qualify leads, and auto-book appointments, all while maintaining a friendly and professional tone.</p>
+<p class="section-intro" contenteditable="true">By integrating this AI solution with your existing tools such as Jobber for scheduling and RingCentral for communication, we ensure streamlined operations and no disruptions to your current workflow. The system is designed to improve client engagement without requiring additional technical knowledge from your team.</p>
+<h3 contenteditable="true" style="font-size:17px;font-weight:700;color:var(--navy);margin-bottom:12px;"></h3>
+<div class="capabilities-grid">
+<div class="cap-card">
+<div class="cap-card-header"><span class="cap-icon" contenteditable="true">📞</span><span class="cap-title" contenteditable="true">Seamless Phone Interaction</span></div>
+<p class="cap-text" contenteditable="true">Our AI receptionist delivers human-like phone conversations, capturing client information and addressing inquiries with ease while building the rapport crucial to client retention.</p>
+</div>
+<div class="cap-card">
+<div class="cap-card-header"><span class="cap-icon" contenteditable="true">🗂️</span><span class="cap-title" contenteditable="true">Lead Qualification</span></div>
+<p class="cap-text" contenteditable="true">Automatically qualify leads using customizable criteria, ensuring only high-value opportunities are forwarded to your team for follow-up.</p>
+</div>
+<div class="cap-card">
+<div class="cap-card-header"><span class="cap-icon" contenteditable="true">📅</span><span class="cap-title" contenteditable="true">Automated Appointment Booking</span></div>
+<p class="cap-text" contenteditable="true">Direct integration with Jobber enables the AI to book appointments and manage schedules autonomously, saving time and effort.</p>
+</div>
+<div class="cap-card">
+<div class="cap-card-header"><span class="cap-icon" contenteditable="true">🎯</span><span class="cap-title" contenteditable="true">Accurate Information Capture</span></div>
+<p class="cap-text" contenteditable="true">Eliminate errors and incomplete client details with precise data collection that syncs with your workflow.</p>
+</div>
+<div class="cap-card">
+<div class="cap-card-header"><span class="cap-icon" contenteditable="true">💬</span><span class="cap-title" contenteditable="true">Advanced Webchat Support</span></div>
+<p class="cap-text" contenteditable="true">Enhance your website with an intelligent webchat bot that nurtures leads and encourages clients to book an appointment or speak to a representative.</p>
+</div>
+<div class="cap-card">
+<div class="cap-card-header"><span class="cap-icon" contenteditable="true">🔄</span><span class="cap-title" contenteditable="true">Integration with Existing Tools</span></div>
+<p class="cap-text" contenteditable="true">Designed to seamlessly implement within the systems you already rely on, such as Jobber and RingCentral, for a unified operational approach.</p>
+</div>
+<div class="cap-card">
+<div class="cap-card-header"><span class="cap-icon" contenteditable="true">📈</span><span class="cap-title" contenteditable="true">Revenue Optimization</span></div>
+<p class="cap-text" contenteditable="true">Convert more leads into clients through improved engagement and follow-up processes, reducing lost revenue from missed calls.</p>
+</div>
+<div class="cap-card">
+<div class="cap-card-header"><span class="cap-icon" contenteditable="true">🔧</span><span class="cap-title" contenteditable="true">Customizable Workflow</span></div>
+<p class="cap-text" contenteditable="true">Tailor the AI system to Doobear's specific processes, ensuring it fits seamlessly into your business environment.</p>
+</div>
+</div>
+<div class="clarity-box">
+<h3 contenteditable="true">Configuration and Setup Details</h3>
+<p contenteditable="true">Our implementation ensures the system integrates seamlessly into your current setup with minimal disruption, leveraging APIs from Jobber and RingCentral for a fully-connected experience.</p>
+</div>
+</div>
+
+<div class="section section-architecture">
+<div class="section-header">
+<div class="section-number"></div>
+<div class="section-title" contenteditable="true">Technical Architecture Tailored for Doobear's</div>
+</div>
+<p class="section-intro" contenteditable="true">Our technical solution is purpose-built for seamless integration with the tools and platforms you rely on. It’s designed to align with your day-to-day operations while elevating the client experience.</p>
+<h3 contenteditable="true" style="font-size:16px;font-weight:700;color:var(--navy);margin-bottom:12px;"></h3>
+<div class="platform-stack">
+<div class="platform-item" contenteditable="true">Conversational AI Engine</div>
+<div class="platform-item" contenteditable="true">Jobber Integration for Scheduling</div>
+<div class="platform-item" contenteditable="true">RingCentral Integration for Call Management</div>
+</div>
+<div class="sandbox-box">
+<h3 contenteditable="true">Testing and Quality Assurance</h3>
+<p contenteditable="true">We will establish a sandbox environment to thoroughly test the system's performance on live calls and client interactions before it goes live.</p>
+</div>
+<div class="call-flow">
+<div class="call-flow-title" contenteditable="true"></div>
+<div class="call-flow-entry" contenteditable="true"></div>
+<div class="flow-arrow"></div>
+<div class="call-flow-entry" contenteditable="true" style="font-size:12px;background:rgba(255,255,255,0.04);color:#94a3b8;font-weight:400;"></div>
+<div class="flow-arrow"></div>
+<div class="flow-options">
+<div class="flow-option">
+<h4 contenteditable="true"></h4>
+<div class="flow-time" contenteditable="true"></div>
+<div class="flow-step" contenteditable="true"></div>
+<div class="flow-step" contenteditable="true" style="color:#94a3b8;font-style:italic;"></div>
+<div class="flow-step" contenteditable="true"></div>
+<div style="margin-top:6px;">
+<div class="flow-action-item" contenteditable="true"></div>
+<div class="flow-action-item" contenteditable="true"></div>
+<div class="flow-action-item" contenteditable="true"></div>
+<div class="flow-action-item" contenteditable="true"></div>
+</div>
+<div class="flow-time" contenteditable="true"></div>
+<div class="flow-step" contenteditable="true"></div>
+<div style="margin-top:6px;">
+<div class="flow-action-item" contenteditable="true"></div>
+<div class="flow-action-item" contenteditable="true"></div>
+</div>
+</div>
+<div class="flow-option">
+<h4 contenteditable="true"></h4>
+<div class="flow-time" contenteditable="true"></div>
+<div class="flow-step" contenteditable="true"></div>
+<div style="margin-top:6px;">
+<div class="flow-action-item" contenteditable="true"></div>
+<div class="flow-action-item" contenteditable="true"></div>
+<div class="flow-action-item" contenteditable="true"></div>
+<div class="flow-action-item" contenteditable="true"></div>
+</div>
+<div class="flow-time" contenteditable="true"></div>
+<div class="flow-step" contenteditable="true"></div>
+<div style="margin-top:6px;">
+<div class="flow-action-item" contenteditable="true"></div>
+<div class="flow-action-item" contenteditable="true"></div>
+</div>
+</div>
+</div>
+<div class="flow-footer">
+<div class="flow-footer-note" contenteditable="true"></div>
+<div class="flow-arrow"></div>
+<div class="flow-footer-step" contenteditable="true"><br><span style="font-size:11px;color:#93c5fd;"></span></div>
+<div class="flow-arrow"></div>
+<div class="flow-footer-step" contenteditable="true"></div>
+<div class="flow-arrow"></div>
+<div class="flow-footer-step alert" contenteditable="true"><br><span style="font-size:11px;"></span></div>
+</div>
+</div>
+<h3 contenteditable="true" style="font-size:16px;font-weight:700;color:var(--navy);margin:28px 0 12px;"></h3>
+<p contenteditable="true" style="font-size:14px;line-height:1.75;margin-bottom:16px;"></p>
+<table class="zapier-table">
+<tbody><tr><td></td><td contenteditable="true">[To be completed]</td></tr>
+<tr><td></td><td contenteditable="true">[To be completed]</td></tr>
+<tr><td></td><td contenteditable="true">[To be completed]</td></tr>
+<tr><td></td><td contenteditable="true">[To be completed]</td></tr>
+<tr><td></td><td contenteditable="true">[To be completed]</td></tr>
+<tr><td></td><td contenteditable="true">[To be completed]</td></tr>
+<tr><td></td><td contenteditable="true">[To be completed]</td></tr>
+<tr><td></td><td contenteditable="true">[To be completed]</td></tr>
+</tbody></table>
+</div>
+
+<div class="section section-timeline">
+<div class="section-header">
+<div class="section-number"></div>
+<div class="section-title" contenteditable="true">Implementation Timeline</div>
+</div>
+<p class="section-intro" contenteditable="true">The full AI receptionist rollout for Doobear's will take 3-4 weeks, divided into four clearly defined phases.</p>
+<div class="timeline">
+<div class="timeline-phase">
+<div class="phase-header">
+<div class="phase-number"></div>
+<div class="phase-title" contenteditable="true">Discovery and Customization</div>
+<div class="phase-days" contenteditable="true">Days 1-5</div>
+</div>
+<div class="phase-body">
+<ul class="phase-items"><li contenteditable="true">Detailed needs assessment</li><li contenteditable="true">Workflow analysis</li><li contenteditable="true">Custom feature setup</li></ul>
+</div>
+</div>
+<div class="timeline-phase">
+<div class="phase-header">
+<div class="phase-number"></div>
+<div class="phase-title" contenteditable="true">System Integration</div>
+<div class="phase-days" contenteditable="true">Days 6-12</div>
+</div>
+<div class="phase-body">
+<ul class="phase-items"><li contenteditable="true">Integration with Jobber</li><li contenteditable="true">RingCentral API connection</li><li contenteditable="true">Webchat bot setup</li></ul>
+</div>
+</div>
+<div class="timeline-phase">
+<div class="phase-header">
+<div class="phase-number"></div>
+<div class="phase-title" contenteditable="true">Testing and Feedback</div>
+<div class="phase-days" contenteditable="true">Days 13-20</div>
+</div>
+<div class="phase-body">
+<ul class="phase-items"><li contenteditable="true">Sandbox testing</li><li contenteditable="true">Performance analysis</li><li contenteditable="true">Client feedback incorporation</li></ul>
+</div>
+</div>
+<div class="timeline-phase">
+<div class="phase-header">
+<div class="phase-number"></div>
+<div class="phase-title" contenteditable="true">Go-Live and Training</div>
+<div class="phase-days" contenteditable="true">Days 21-28</div>
+</div>
+<div class="phase-body">
+<ul class="phase-items"><li contenteditable="true">System deployment</li><li contenteditable="true">Staff training</li><li contenteditable="true">Post-launch support</li></ul>
+</div>
+</div>
+</div>
+</div>
+
+<div class="section section-investment">
+<div class="section-header">
+<div class="section-number"></div>
+<div class="section-title" contenteditable="true">Investment Overview</div>
+</div>
+<p class="section-intro" contenteditable="true">This solution represents a valuable step forward for Doobear’s in maximizing client satisfaction and minimizing operational inefficiencies. Our transparent pricing reflects the return on investment we’ll deliver.</p>
+<table class="pricing-table">
+<thead>
+<tr>
+<th contenteditable="true"></th>
+<th contenteditable="true"></th>
+<th contenteditable="true"></th>
+<th contenteditable="true"></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><div class="line-item-title" contenteditable="true"></div></td>
+<td><div class="line-item-desc" contenteditable="true"></div></td>
+<td contenteditable="true">[To be completed]</td>
+<td contenteditable="true">[To be completed]</td>
+</tr>
+<tr>
+<td><div class="line-item-title" contenteditable="true"></div></td>
+<td><div class="line-item-desc" contenteditable="true"></div></td>
+<td contenteditable="true">[To be completed]</td>
+<td contenteditable="true">[To be completed]</td>
+</tr>
+<tr class="total-row">
+<td contenteditable="true">[To be completed]</td>
+<td><div class="line-item-desc" contenteditable="true"></div></td>
+<td contenteditable="true">[To be completed]</td>
+<td contenteditable="true">[To be completed]</td>
+</tr>
+<tr>
+<td><div class="line-item-title" contenteditable="true"></div></td>
+<td><div class="line-item-desc" contenteditable="true"></div></td>
+<td contenteditable="true">[To be completed]</td>
+<td contenteditable="true">[To be completed]</td>
+</tr>
+<tr>
+<td><div class="line-item-title" contenteditable="true"></div></td>
+<td><div class="line-item-desc" contenteditable="true"></div></td>
+<td contenteditable="true">[To be completed]</td>
+<td contenteditable="true">[To be completed]</td>
+</tr>
+<tr class="discount-row">
+<td contenteditable="true">[To be completed]</td>
+<td><div class="line-item-desc" contenteditable="true"></div></td>
+<td contenteditable="true">[To be completed]</td>
+<td contenteditable="true">[To be completed]</td>
+</tr>
+</tbody>
+</table>
+<div class="payment-note">
+<strong contenteditable="true"></strong>
+<span contenteditable="true">An initial setup fee of $1,000 is required, followed by a $500/month service fee. Payments are due monthly.</span>
+<br><br>
+<em contenteditable="true" style="font-size:12px;"></em>
+</div>
+</div>
+
+<div class="section section-why">
+<div class="section-header">
+<div class="section-number" style="background:var(--blue);"></div>
+<div class="section-title" contenteditable="true">Why Partner with Us?</div>
+</div>
+<p class="section-intro" contenteditable="true">Doobear's deserves a solution tailored to its unique challenges. Here's why we’re the right choice for your business.</p>
+<div class="why-grid">
+<div class="why-card">
+<h3 contenteditable="true">✨ Proven Expertise in Home Services</h3>
+<p contenteditable="true">We understand the needs of home service businesses like Doobear's and specialize in delivering solutions that work for this industry.</p>
+</div>
+<div class="why-card">
+<h3 contenteditable="true">🎯 Laser-Focused Customization</h3>
+<p contenteditable="true">Our approach is built entirely around your specific challenges, ensuring that every feature solves a real pain point.</p>
+</div>
+<div class="why-card">
+<h3 contenteditable="true">📊 Results-Driven Outcomes</h3>
+<p contenteditable="true">We deliver measurable improvements in call experience, lead capture, and client bookings.</p>
+</div>
+<div class="why-card">
+<h3 contenteditable="true">🤝 Commitment to Your Success</h3>
+<p contenteditable="true">From initial setup to long-term support, we’re your partner in building a stronger client experience.</p>
+</div>
+</div>
+</div>
+
+<div class="section section-getstarted">
+<div class="section-header">
+<div class="section-number" style="background:var(--green);font-size:18px;"></div>
+<div class="section-title" contenteditable="true">Get Started with Us Today</div>
+</div>
+<p class="section-intro" contenteditable="true">Ready to enhance your client experience and reclaim lost revenue? Here’s how the process begins for Doobear's.</p>
+<div class="get-started-steps">
+<div class="get-started-step">
+<div class="step-num"></div>
+<div class="step-content"><strong contenteditable="true">Schedule a Kickoff Call</strong><span contenteditable="true">We’ll dive into your business needs and set up the initial project timeline.</span></div>
+</div>
+<div class="get-started-step">
+<div class="step-num"></div>
+<div class="step-content"><strong contenteditable="true">Define Custom Call Flows</strong><span contenteditable="true">Collaborate with us to design the perfect AI interaction workflows.</span></div>
+</div>
+<div class="get-started-step">
+<div class="step-num"></div>
+<div class="step-content"><strong contenteditable="true">Integrate and Customize</strong><span contenteditable="true">We’ll configure the system to align with your tools and preferences.</span></div>
+</div>
+<div class="get-started-step">
+<div class="step-num"></div>
+<div class="step-content"><strong contenteditable="true">Test the AI Solution</strong><span contenteditable="true">Involve your team in testing the system thoroughly before launch.</span></div>
+</div>
+<div class="get-started-step">
+<div class="step-num"></div>
+<div class="step-content"><strong contenteditable="true">Go Live and Thrive</strong><span contenteditable="true">Activate the system and watch your client engagement transform.</span></div>
+</div>
+</div>
+<div class="valid-through" contenteditable="true">This proposal is valid through <strong>April 30, 2026</strong>.</div>
+<div class="contact-block">
+<strong contenteditable="true"></strong><br>
+<span contenteditable="true"><a href="mailto:jonathan@tflow-automations.com"></a></span>
+</div>
+<h3 contenteditable="true" style="font-size:16px;font-weight:700;color:var(--navy);margin:32px 0 16px;"></h3>
+<div class="signature-block" id="signatureBlock">
+<div id="sigPartyClient">
+<div class="sig-label" contenteditable="true"></div>
+<div class="sig-line" id="clientSigLine"></div>
+<div class="sig-date" contenteditable="true" id="clientSigDate"></div>
+</div>
+<div>
+<div class="sig-label" contenteditable="true"></div>
+<div class="sig-line"></div>
+<div class="sig-date" contenteditable="true"></div>
+</div>
+</div>
+</div>
+
+<div class="section-appendix">
+<div class="appendix-header">
+<h2 contenteditable="true">Appendix</h2>
+<p contenteditable="true">Supporting Information</p>
+</div>
+<div class="appendix-body">
+<div class="safeguard-block">
+<div class="safeguard-title" contenteditable="true"></div>
+<div class="safeguard-body">
+<p contenteditable="true"></p>
+<p contenteditable="true"><strong></strong></p>
+<p contenteditable="true"><strong></strong></p>
+<ul class="kill-switch-list">
+<li contenteditable="true"></li>
+<li contenteditable="true"></li>
+<li contenteditable="true"></li>
+<li contenteditable="true"></li>
+</ul>
+</div>
+</div>
+<div class="safeguard-block">
+<div class="safeguard-title" contenteditable="true"></div>
+<div class="safeguard-body">
+<p contenteditable="true"><strong></strong><strong></strong></p>
+<p contenteditable="true"><strong></strong></p>
+<ul class="kill-switch-list">
+<li contenteditable="true"></li>
+<li contenteditable="true"></li>
+<li contenteditable="true"></li>
+<li contenteditable="true"></li>
+</ul>
+</div>
+</div>
+<div class="safeguard-block">
+<div class="safeguard-title" contenteditable="true"></div>
+<div class="safeguard-body">
+<p contenteditable="true"></p>
+<table class="zapier-table">
+<tbody><tr><td></td><td contenteditable="true">[To be completed]</td></tr>
+<tr><td></td><td contenteditable="true">[To be completed]</td></tr>
+<tr><td></td><td contenteditable="true">[To be completed]</td></tr>
+<tr><td></td><td contenteditable="true">[To be completed]</td></tr>
+<tr><td></td><td contenteditable="true">[To be completed]</td></tr>
+<tr><td></td><td contenteditable="true">[To be completed]</td></tr>
+<tr><td></td><td contenteditable="true">[To be completed]</td></tr>
+<tr><td></td><td contenteditable="true">[To be completed]</td></tr>
+</tbody></table>
+<p contenteditable="true" style="margin-top:14px;font-size:13px;color:var(--muted);"></p>
+</div>
+</div>
+</div>
+</div>
+<div class="doc-footer" contenteditable="true"></div>
+</div>
+  
+  <!-- Success Modal -->
+  <div class="modal-overlay" id="successModal">
+    <div class="success-modal">
+      <div class="success-icon">✓</div>
+      <h2>Excellent!</h2>
+      <p>We've received your approval.</p>
+      <div class="highlight">
+        <strong>TrueFlow has been notified.</strong><br><br>
+        We are preparing your Statement of Work (SOW) and formal contract now — keep an eye on your inbox shortly so we can get started!
+      </div>
+      <button class="btn-close-modal" onclick="closeModal()">Got It</button>
+    </div>
+  </div>
+  
+  <script>
+    // Proposal metadata for API calls
+    const PROPOSAL_DATA = {
+      id: 'a18a443d-a5c0-4071-8542-6729779bb5ee',
+      title: 'AI Generated Proposal',
+      clientName: 'Jack Tester',
+      clientCompany: 'Doobear\'s',
+      notificationEmail: '',
+      apiUrl: 'https://signature-email-auto.preview.emergentagent.com/api',
+      version: '1775245810324'
+    };
+    
+    const STORAGE_KEY = 'proposal_accepted_' + PROPOSAL_DATA.id;
+    
+    // Disable editing in published version
+    document.querySelectorAll('[contenteditable]').forEach(el => el.removeAttribute('contenteditable'));
+    
+    // Check if already accepted (and version matches)
+    function checkAcceptanceState() {
+      const acceptedData = localStorage.getItem(STORAGE_KEY);
+      if (acceptedData) {
+        const data = JSON.parse(acceptedData);
+        // Check if this acceptance is for the current version
+        if (data.version === PROPOSAL_DATA.version) {
+          showAcceptedState(data.date);
+          return true;
+        } else {
+          // Clear old acceptance - proposal was updated/reset
+          localStorage.removeItem(STORAGE_KEY);
+        }
+      }
+      return false;
+    }
+    
+    // Show accepted state
+    function showAcceptedState(dateStr) {
+      const section = document.getElementById('acceptSection');
+      if (section) {
+        section.classList.add('accepted');
+        section.innerHTML = `
+          <h3>Proposal Accepted</h3>
+          <div class="accepted-info">
+            <div class="accepted-badge">✓ Accepted & Proceeding</div>
+            <div class="accepted-date">Accepted on ${dateStr}</div>
+          </div>
+        `;
+      }
+    }
+    
+    // Replace signature block with Accept button
+    const sigBlock = document.getElementById('signatureBlock');
+    if (sigBlock) {
+      sigBlock.outerHTML = `
+        <div class="accept-section" id="acceptSection">
+          <h3>Ready to Move Forward?</h3>
+          <button class="btn-accept" id="acceptBtn" onclick="handleAccept()">
+            ✓ Accept & Proceed
+          </button>
+        </div>
+      `;
+      
+      // Check if already accepted after creating the section
+      checkAcceptanceState();
+    }
+    
+    async function handleAccept() {
+      const btn = document.getElementById('acceptBtn');
+      const modal = document.getElementById('successModal');
+      const acceptDate = new Date();
+      const dateStr = acceptDate.toLocaleDateString('en-US', { 
+        year: 'numeric', month: 'long', day: 'numeric', 
+        hour: '2-digit', minute: '2-digit' 
+      });
+      
+      // Save to localStorage with version
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({
+        accepted: true,
+        date: dateStr,
+        timestamp: acceptDate.toISOString(),
+        version: PROPOSAL_DATA.version
+      }));
+      
+      // Show accepted state
+      showAcceptedState(dateStr);
+      
+      // Show success modal
+      modal.classList.add('active');
+      
+      // Send notification to backend
+      try {
+        const pageUrl = window.location.href;
+        await fetch(PROPOSAL_DATA.apiUrl + '/proposals/' + PROPOSAL_DATA.id + '/accepted', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            proposal_id: PROPOSAL_DATA.id,
+            title: PROPOSAL_DATA.title,
+            client_name: PROPOSAL_DATA.clientName,
+            client_company: PROPOSAL_DATA.clientCompany,
+            notification_email: PROPOSAL_DATA.notificationEmail,
+            accepted_at: acceptDate.toISOString(),
+            page_url: pageUrl
+          })
+        });
+        console.log('Acceptance notification sent');
+      } catch (err) {
+        console.log('Could not send notification:', err);
+      }
+    }
+    
+    function closeModal() {
+      document.getElementById('successModal').classList.remove('active');
+    }
+    
+    // Close modal on overlay click
+    document.getElementById('successModal').onclick = function(e) {
+      if (e.target === this) closeModal();
+    };
+  </script>
+</body>
+</html>
