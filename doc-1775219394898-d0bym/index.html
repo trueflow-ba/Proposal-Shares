@@ -1,0 +1,1162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mr HandyMan Proposal</title>
+  <style>
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --navy: #1a2744;
+      --blue: #2563eb;
+      --light-blue: #eff6ff;
+      --accent: #f59e0b;
+      --green: #16a34a;
+      --text: #1e293b;
+      --muted: #64748b;
+      --border: #e2e8f0;
+      --card-bg: #f8fafc;
+      --font-size-base: 15px;
+    }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      font-size: var(--font-size-base);
+      color: var(--text);
+      background: #f1f5f9;
+      line-height: 1.6;
+    }
+
+    [contenteditable]:hover { outline: 1px dashed #93c5fd; border-radius: 3px; cursor: text; }
+    [contenteditable]:focus { outline: 2px solid var(--blue); border-radius: 3px; }
+    [contenteditable="false"]:hover,
+    [contenteditable="false"]:focus { outline: none !important; cursor: default; }
+
+    /* === TOOLBAR === */
+    .toolbar {
+      position: sticky; top: 0; z-index: 100;
+      background: var(--navy); color: white;
+      padding: 10px 20px;
+      display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+    }
+    .toolbar-title { font-size: 12px; font-weight: 600; color: #94a3b8; flex: 1; min-width: 160px; }
+    .toolbar-btn {
+      background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2);
+      color: white; padding: 5px 12px; border-radius: 5px; cursor: pointer;
+      font-size: 12px; white-space: nowrap; transition: background 0.2s;
+    }
+    .toolbar-btn:hover { background: rgba(255,255,255,0.2); }
+    .toolbar-btn.pb-btn { background: rgba(99,102,241,0.25); border-color: rgba(129,140,248,0.5); }
+    .toolbar-btn.pb-btn:hover { background: rgba(99,102,241,0.45); }
+    .toolbar-btn.share-btn { background: rgba(37,99,235,0.35); border-color: rgba(96,165,250,0.5); }
+    .toolbar-btn.share-btn:hover { background: rgba(37,99,235,0.55); }
+    .toolbar-divider { width: 1px; height: 24px; background: rgba(255,255,255,0.2); margin: 0 2px; }
+
+    /* === SHARE BANNER (shown in share/recipient mode) === */
+    .share-banner {
+      background: var(--navy); color: white;
+      text-align: center; padding: 11px 20px;
+      font-size: 13px; font-weight: 500; line-height: 1.5;
+    }
+    .share-banner em { color: #94a3b8; font-style: normal; font-size: 12px; }
+
+    /* === MODAL === */
+    .modal-overlay {
+      position: fixed; inset: 0;
+      background: rgba(15,23,42,0.65);
+      z-index: 9999;
+      display: flex; align-items: center; justify-content: center;
+      padding: 20px;
+      backdrop-filter: blur(3px);
+    }
+    .modal-box {
+      background: white; border-radius: 14px;
+      width: 100%; max-width: 500px; max-height: 88vh;
+      overflow-y: auto;
+      box-shadow: 0 24px 64px rgba(0,0,0,0.3);
+    }
+    .modal-header {
+      padding: 18px 22px 14px; border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; gap: 10px;
+      position: sticky; top: 0; background: white;
+      border-radius: 14px 14px 0 0; z-index: 2;
+    }
+    .modal-header h3 { font-size: 16px; font-weight: 700; color: var(--navy); flex: 1; }
+    .modal-close-btn {
+      background: #f1f5f9; border: none;
+      width: 28px; height: 28px; border-radius: 50%;
+      font-size: 15px; cursor: pointer; color: var(--muted);
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 700; transition: background 0.2s;
+    }
+    .modal-close-btn:hover { background: #e2e8f0; color: var(--text); }
+    .modal-body { padding: 18px 22px 22px; }
+    .modal-section { margin-bottom: 18px; }
+    .modal-section:last-child { margin-bottom: 0; }
+    .modal-lbl {
+      display: block; font-size: 11px; font-weight: 700;
+      color: var(--muted); text-transform: uppercase;
+      letter-spacing: 0.8px; margin-bottom: 6px;
+    }
+    .modal-inp {
+      width: 100%; padding: 8px 11px;
+      border: 1px solid var(--border); border-radius: 7px;
+      font-size: 13.5px; color: var(--text); font-family: inherit;
+      outline: none; transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .modal-inp:focus { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(37,99,235,0.1); }
+    .modal-field-hint { font-size: 11px; color: var(--muted); margin-top: 4px; }
+    .email-add-row { display: flex; gap: 8px; }
+    .email-add-row .modal-inp { flex: 1; }
+    .btn-add {
+      background: var(--blue); color: white; border: none;
+      padding: 8px 14px; border-radius: 7px;
+      font-size: 13px; font-weight: 600; cursor: pointer;
+      white-space: nowrap; transition: background 0.2s;
+    }
+    .btn-add:hover { background: #1d4ed8; }
+    .btn-add:disabled { background: #94a3b8; cursor: not-allowed; }
+    .chips-wrap { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+    .e-chip {
+      display: inline-flex; align-items: center; gap: 5px;
+      background: #eff6ff; border: 1px solid #bfdbfe;
+      border-radius: 20px; padding: 3px 8px 3px 11px;
+      font-size: 12px; color: #1e40af; font-weight: 500;
+    }
+    .e-chip-x {
+      background: none; border: none; color: #93c5fd;
+      cursor: pointer; font-size: 14px; padding: 0;
+      line-height: 1; font-weight: 800;
+    }
+    .e-chip-x:hover { color: #2563eb; }
+    .link-box {
+      background: #f8fafc; border: 1px solid var(--border);
+      border-radius: 7px; padding: 10px 13px;
+      font-size: 11.5px; font-family: 'Courier New', monospace;
+      color: var(--navy); word-break: break-all; line-height: 1.55;
+      margin-bottom: 10px; user-select: all;
+    }
+    .link-btn-row { display: flex; gap: 8px; flex-wrap: wrap; }
+    .btn-copy-link {
+      background: var(--navy); color: white; border: none;
+      padding: 7px 15px; border-radius: 7px;
+      font-size: 12.5px; font-weight: 600; cursor: pointer;
+      transition: background 0.2s;
+    }
+    .btn-copy-link:hover { background: #0f172a; }
+    .btn-copy-link.copied { background: var(--green); }
+    .btn-regen {
+      background: var(--card-bg); color: var(--text);
+      border: 1px solid var(--border);
+      padding: 7px 13px; border-radius: 7px;
+      font-size: 12.5px; font-weight: 600;
+      cursor: pointer; transition: background 0.2s;
+    }
+    .btn-regen:hover { background: #e2e8f0; }
+    .modal-warn {
+      background: #fffbeb; border: 1px solid #fde68a;
+      border-left: 4px solid var(--accent); border-radius: 8px;
+      padding: 12px 14px; font-size: 12px; color: #78350f; line-height: 1.65;
+    }
+    .modal-warn strong { display: block; margin-bottom: 3px; font-size: 12.5px; color: #92400e; }
+
+    /* === INTERACTIVE SIGNATURE (share / recipient mode) === */
+    .sig-click-area {
+      min-height: 54px; border: 2px dashed #c7d2fe;
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; transition: border-color 0.2s, background 0.2s;
+      margin-bottom: 8px; background: #fafbff; padding: 8px 12px;
+    }
+    .sig-click-area:hover { border-color: var(--blue); background: #eff6ff; }
+    .sig-click-ph {
+      font-size: 13px; color: #a5b4fc;
+      font-style: italic; pointer-events: none; text-align: center;
+    }
+    .sig-inp-wrap { display: flex; flex-direction: column; gap: 8px; margin-bottom: 8px; }
+    .sig-type-inp {
+      width: 100%; padding: 7px 10px;
+      border: 1px solid var(--border); border-radius: 6px;
+      font-size: 13px; font-family: inherit;
+      outline: none; box-sizing: border-box; transition: border-color 0.2s;
+    }
+    .sig-type-inp:focus { border-color: var(--blue); }
+    .sig-cursive {
+      font-family: cursive; font-size: 28px; color: var(--navy);
+      padding: 4px 4px 2px; border-bottom: 1.5px solid #c7d2fe;
+      min-height: 44px; line-height: 1.2;
+    }
+    .sig-action-row { display: flex; gap: 8px; align-items: center; }
+    .btn-sign-doc {
+      background: var(--green); color: white; border: none;
+      padding: 7px 16px; border-radius: 6px;
+      font-size: 12.5px; font-weight: 700; cursor: pointer;
+      transition: background 0.2s;
+    }
+    .btn-sign-doc:hover { background: #15803d; }
+    .btn-sign-doc:disabled { background: #94a3b8; cursor: not-allowed; }
+    .btn-clr-sig {
+      background: none; border: none; color: var(--muted);
+      font-size: 12px; cursor: pointer; text-decoration: underline; padding: 0;
+    }
+    .sig-final-wrap { margin-bottom: 8px; }
+    .sig-final-name {
+      font-family: cursive; font-size: 32px; color: var(--navy);
+      border-bottom: 2px solid var(--navy); padding-bottom: 2px;
+      display: inline-block; min-width: 180px;
+    }
+    .sig-final-badge {
+      display: inline-flex; align-items: center; gap: 4px;
+      background: #f0fdf4; border: 1px solid #86efac;
+      border-radius: 4px; padding: 2px 8px;
+      font-size: 11px; color: var(--green); font-weight: 700;
+      margin-left: 10px; vertical-align: middle;
+      font-family: 'Segoe UI', system-ui, sans-serif;
+    }
+
+    /* === WRAPPER === */
+    .doc-wrapper { max-width: 900px; margin: 30px auto; padding: 0 20px 60px; }
+
+    /* === COVER === */
+    .cover {
+      background: var(--navy); color: white;
+      padding: 48px 48px 40px; border-radius: 12px 12px 0 0; text-align: center;
+    }
+    .cover-badge {
+      display: inline-block; background: var(--blue); color: white;
+      font-size: 11px; font-weight: 700; letter-spacing: 1.5px;
+      text-transform: uppercase; padding: 4px 14px; border-radius: 20px; margin-bottom: 20px;
+    }
+    .cover h1 { font-size: 32px; font-weight: 800; margin-bottom: 8px; letter-spacing: -0.5px; }
+    .cover-tagline { font-size: 15px; color: #94a3b8; font-style: italic; margin: 14px 0 28px; }
+    .cover-meta {
+      display: grid; grid-template-columns: 1fr 1px 1fr;
+      background: rgba(255,255,255,0.05); border-radius: 8px;
+      padding: 20px; text-align: left; max-width: 560px; margin: 0 auto 24px;
+    }
+    .cover-meta-divider { background: rgba(255,255,255,0.15); }
+    .cover-meta-item { padding: 0 20px; }
+    .cover-meta-label { font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: #94a3b8; margin-bottom: 4px; }
+    .cover-meta-value { font-size: 14px; font-weight: 600; color: white; }
+    .cover-meta-sub { font-size: 12px; color: #94a3b8; }
+    .cover-id { font-size: 11px; color: #64748b; }
+
+    /* === SECTIONS === */
+    .section {
+      background: white; padding: 40px 48px;
+      border-left: 1px solid var(--border); border-right: 1px solid var(--border); border-bottom: 1px solid var(--border);
+    }
+    .exec-summary {
+      background: white; padding: 40px 48px;
+      border-left: 1px solid var(--border); border-right: 1px solid var(--border); border-bottom: 1px solid var(--border);
+    }
+    .exec-summary h2 { font-size: 22px; font-weight: 700; color: var(--navy); margin-bottom: 16px; }
+    .exec-summary p { margin-bottom: 14px; line-height: 1.75; }
+    .section-header { display: flex; align-items: center; gap: 14px; margin-bottom: 24px; }
+    .section-number {
+      width: 36px; height: 36px; min-width: 36px; background: var(--navy); color: white;
+      font-size: 16px; font-weight: 800; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+    }
+    .section-title { font-size: 22px; font-weight: 700; color: var(--navy); }
+    .section-intro { margin-bottom: 20px; line-height: 1.75; }
+
+    /* === PILLARS === */
+    .pillars { display: flex; flex-direction: column; gap: 12px; margin-top: 20px; }
+    .pillar { padding: 14px 18px; background: var(--light-blue); border-left: 4px solid var(--blue); border-radius: 6px; font-size: 14px; line-height: 1.65; }
+    .pillar-title { font-weight: 700; color: var(--navy); }
+
+    /* === CAPABILITY CARDS === */
+    .capabilities-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin-top: 20px; }
+    .cap-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 8px; padding: 18px 20px; }
+    .cap-card-header { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+    .cap-icon { font-size: 20px; }
+    .cap-title { font-weight: 700; font-size: 14px; color: var(--navy); }
+    .cap-text { font-size: 13px; color: var(--muted); line-height: 1.6; }
+
+    /* === CLARITY BOX === */
+    .clarity-box {
+      background: #fffbeb; border: 1px solid #fde68a;
+      border-left: 4px solid var(--accent); border-radius: 8px;
+      padding: 20px 24px; margin-top: 28px;
+    }
+    .clarity-box h3 { font-size: 15px; font-weight: 700; color: #92400e; margin-bottom: 10px; }
+    .clarity-box p { font-size: 14px; color: #78350f; line-height: 1.7; }
+
+    /* === PLATFORM STACK === */
+    .platform-stack { display: flex; flex-direction: column; gap: 12px; margin: 20px 0; }
+    .platform-item { padding: 14px 18px; background: var(--card-bg); border: 1px solid var(--border); border-radius: 8px; font-size: 14px; line-height: 1.65; }
+    .platform-item strong { color: var(--navy); }
+
+    /* === SANDBOX BOX === */
+    .sandbox-box { background: #f0f9ff; border: 1px solid #bae6fd; border-left: 4px solid #0ea5e9; border-radius: 8px; padding: 18px 22px; margin-top: 20px; font-size: 14px; color: #0c4a6e; line-height: 1.7; }
+    .sandbox-box h3 { font-size: 15px; font-weight: 700; margin-bottom: 8px; }
+
+    /* === CALL FLOW === */
+    .call-flow { background: var(--navy); color: white; border-radius: 10px; padding: 28px 32px; margin-top: 24px; font-size: 13px; }
+    .call-flow-title { font-size: 13px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 14px; }
+    .call-flow-entry { text-align: center; font-size: 14px; font-weight: 600; padding: 10px; background: rgba(255,255,255,0.07); border-radius: 6px; margin-bottom: 6px; }
+    .flow-arrow { text-align: center; color: #94a3b8; margin: 4px 0; font-size: 16px; }
+    .flow-options { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 8px 0; }
+    .flow-option { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 16px; }
+    .flow-option h4 { font-size: 12px; font-weight: 700; color: #60a5fa; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 12px; }
+    .flow-time { font-size: 11px; color: var(--accent); font-weight: 600; text-transform: uppercase; letter-spacing: 0.8px; margin: 10px 0 5px; }
+    .flow-step { font-size: 12px; color: #cbd5e1; padding: 2px 0; }
+    .flow-action-item { font-size: 12px; color: #86efac; padding: 2px 0; }
+    .flow-footer { margin-top: 14px; padding-top: 14px; border-top: 1px solid rgba(255,255,255,0.1); }
+    .flow-footer-note { text-align: center; font-size: 11px; color: #64748b; font-style: italic; margin-bottom: 4px; }
+    .flow-footer-step { text-align: center; padding: 10px; font-size: 13px; color: #e2e8f0; background: rgba(37,99,235,0.3); border-radius: 6px; margin: 4px 0; }
+    .flow-footer-step.alert { background: rgba(245,158,11,0.2); color: #fde68a; font-size: 12px; }
+
+    /* === ZAPIER TABLE === */
+    .zapier-table { width: 100%; border-collapse: collapse; margin-top: 16px; font-size: 13px; }
+    .zapier-table tr { border-bottom: 1px solid var(--border); }
+    .zapier-table td { padding: 11px 14px; vertical-align: top; }
+    .zapier-table td:first-child { font-weight: 700; color: white; background: var(--navy); width: 90px; border-radius: 4px; white-space: nowrap; }
+    .zapier-table td:nth-child(2) { color: var(--muted); background: var(--card-bg); }
+
+    /* === TIMELINE === */
+    .timeline { display: flex; flex-direction: column; gap: 18px; margin-top: 24px; }
+    .timeline-phase { border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+    .phase-header { background: var(--navy); color: white; padding: 14px 20px; display: flex; align-items: center; gap: 14px; }
+    .phase-number { width: 32px; height: 32px; min-width: 32px; background: var(--blue); color: white; font-weight: 800; font-size: 15px; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+    .phase-title { font-weight: 700; font-size: 16px; }
+    .phase-days { margin-left: auto; font-size: 12px; color: #94a3b8; white-space: nowrap; }
+    .phase-body { padding: 18px 20px; background: white; }
+    .phase-items { list-style: none; display: flex; flex-direction: column; gap: 8px; }
+    .phase-items li { font-size: 13.5px; padding-left: 20px; position: relative; color: var(--text); line-height: 1.55; }
+    .phase-items li::before { content: '→'; position: absolute; left: 0; color: var(--blue); font-weight: 700; }
+
+    /* === PRICING TABLE === */
+    .pricing-table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 14px; }
+    .pricing-table th { background: var(--navy); color: white; padding: 12px 16px; text-align: left; font-size: 12px; letter-spacing: 0.5px; }
+    .pricing-table th:nth-child(3), .pricing-table th:nth-child(4) { text-align: right; }
+    .pricing-table td { padding: 13px 16px; border-bottom: 1px solid var(--border); vertical-align: top; }
+    .pricing-table td:nth-child(3), .pricing-table td:nth-child(4) { text-align: right; font-weight: 600; white-space: nowrap; }
+    .pricing-table tr:nth-child(even) td { background: var(--card-bg); }
+    .pricing-table .total-row td { background: #eff6ff; font-weight: 700; color: var(--navy); border-top: 2px solid var(--blue); }
+    .pricing-table .discount-row td { background: #fefce8; color: #92400e; }
+    .line-item-title { font-weight: 600; color: var(--navy); margin-bottom: 3px; }
+    .line-item-desc { font-size: 12px; color: var(--muted); line-height: 1.5; }
+
+    /* === PAYMENT === */
+    .payment-note { background: #f0fdf4; border: 1px solid #86efac; border-left: 4px solid var(--green); border-radius: 8px; padding: 16px 20px; margin-top: 20px; font-size: 13.5px; color: #14532d; line-height: 1.7; }
+    .payment-note strong { display: block; font-size: 14px; margin-bottom: 6px; }
+
+    /* === WHY TRUEFLOW === */
+    .why-grid { display: grid; grid-template-columns: repeat(2,1fr); gap: 16px; margin-top: 24px; }
+    .why-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 8px; padding: 18px 20px; }
+    .why-card h3 { font-size: 14px; font-weight: 700; color: var(--navy); margin-bottom: 8px; }
+    .why-card p { font-size: 13px; color: var(--muted); line-height: 1.6; }
+
+    /* === GET STARTED === */
+    .get-started-steps { display: flex; flex-direction: column; gap: 14px; margin-top: 22px; }
+    .get-started-step { display: flex; gap: 16px; align-items: flex-start; }
+    .step-num { width: 32px; height: 32px; min-width: 32px; background: var(--blue); color: white; font-weight: 800; font-size: 14px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-top: 2px; }
+    .step-content { font-size: 14px; line-height: 1.65; flex: 1; }
+    .step-content strong { color: var(--navy); display: block; margin-bottom: 2px; }
+    .valid-through { margin-top: 24px; padding: 14px 20px; background: #eff6ff; border-radius: 8px; font-size: 14px; color: var(--navy); text-align: center; }
+    .contact-block { margin-top: 16px; padding: 16px 20px; background: var(--card-bg); border: 1px solid var(--border); border-radius: 8px; font-size: 14px; text-align: center; }
+    .contact-block a { color: var(--blue); text-decoration: none; }
+
+    /* === SIGNATURE === */
+    .signature-block { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-top: 32px; }
+    .sig-label { font-size: 12px; color: var(--muted); margin-bottom: 8px; }
+    .sig-line { height: 48px; border-bottom: 1px solid var(--border); margin-bottom: 8px; }
+    .sig-date { font-size: 12px; color: var(--muted); }
+
+    /* === APPENDIX === */
+    .appendix-header { background: #0f172a; color: white; padding: 32px 48px; }
+    .appendix-header h2 { font-size: 22px; font-weight: 700; margin-bottom: 6px; }
+    .appendix-header p { font-size: 14px; color: #94a3b8; }
+    .appendix-body { padding: 36px 48px; background: white; border-left: 1px solid var(--border); border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); border-radius: 0 0 12px 12px; }
+    .safeguard-block { margin-bottom: 36px; padding-bottom: 36px; border-bottom: 1px solid var(--border); }
+    .safeguard-block:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+    .safeguard-title { font-size: 18px; font-weight: 700; color: var(--navy); margin-bottom: 16px; }
+    .safeguard-body p { font-size: 14px; line-height: 1.75; margin-bottom: 12px; }
+    .safeguard-body strong { color: var(--navy); }
+    .kill-switch-list { list-style: none; display: flex; flex-direction: column; gap: 8px; margin: 14px 0; }
+    .kill-switch-list li { font-size: 13.5px; padding: 8px 14px; background: #f0fdf4; border-left: 3px solid var(--green); border-radius: 4px; color: #14532d; }
+
+    /* === FOOTER === */
+    .doc-footer { text-align: center; padding: 20px; font-size: 11px; color: var(--muted); line-height: 1.7; }
+
+    /* === PAGE BREAK SYSTEM === */
+    .pb-insert-zone { height: 24px; display: flex; align-items: center; justify-content: center; cursor: pointer; opacity: 0; transition: opacity 0.18s; }
+    .pb-insert-zone:hover { opacity: 1 !important; }
+    .pb-insert-inner { display: flex; align-items: center; gap: 6px; background: #eef2ff; border: 1px dashed #818cf8; border-radius: 20px; padding: 3px 16px; font-size: 11px; color: #4f46e5; font-weight: 700; white-space: nowrap; letter-spacing: 0.4px; pointer-events: none; }
+    .page-break-el { margin: 0; line-height: 0; }
+    .page-break-visual { display: flex; align-items: center; gap: 12px; padding: 8px 0; user-select: none; line-height: 1; }
+    .pb-line { flex: 1; border-top: 2px dashed #a5b4fc; }
+    .pb-badge { display: flex; align-items: center; gap: 8px; background: #eef2ff; border: 1px solid #c7d2fe; border-radius: 20px; padding: 5px 14px; font-size: 10px; font-weight: 700; color: #4338ca; text-transform: uppercase; letter-spacing: 1px; white-space: nowrap; }
+    .pb-remove-btn { background: none; border: none; color: #f87171; cursor: pointer; font-size: 15px; padding: 0 0 0 4px; line-height: 1; font-weight: 700; }
+    .pb-remove-btn:hover { color: #dc2626; }
+    .pb-trigger { display: block; height: 0; overflow: hidden; line-height: 0; font-size: 0; margin: 0; padding: 0; }
+
+    /* === RESPONSIVE === */
+    @media (max-width: 640px) {
+      .cover { padding: 28px 20px; }
+      .cover h1 { font-size: 22px; }
+      .cover-meta { grid-template-columns: 1fr; }
+      .cover-meta-divider { display: none; }
+      .exec-summary, .section { padding: 24px 20px; }
+      .capabilities-grid, .why-grid, .flow-options { grid-template-columns: 1fr; }
+      .signature-block { grid-template-columns: 1fr; }
+      .appendix-header, .appendix-body { padding: 24px 20px; }
+      .toolbar-title { display: none; }
+      .modal-box { max-width: 100%; }
+    }
+
+    /* === PRINT === */
+    @media print {
+      body { background: white; font-size: 13px; }
+      .toolbar, .pb-insert-zone, .page-break-visual, .modal-overlay, .share-banner { display: none !important; }
+      .pb-trigger { display: block !important; break-before: page !important; page-break-before: always !important; height: 0 !important; overflow: hidden !important; margin: 0 !important; padding: 0 !important; line-height: 0 !important; font-size: 0 !important; }
+      .doc-wrapper { margin: 0; padding: 0; max-width: 100%; }
+      .cover { border-radius: 0; }
+      .appendix-body { border-radius: 0; }
+      .section-solution { break-before: page; }
+      .section-architecture { break-before: page; }
+      .section-timeline { break-before: page; }
+      .section-investment { break-before: page; }
+      .section-why { break-before: page; }
+      .section-getstarted { break-before: page; }
+      .section-appendix { break-before: page; }
+      .safeguard-block + .safeguard-block { break-before: page; }
+      .cap-card, .pillar, .platform-item, .why-card, .get-started-step, .signature-block, .contact-block, .valid-through, .flow-option, .zapier-table tr, .pricing-table tr, .phase-items li, .kill-switch-list li { break-inside: avoid; page-break-inside: avoid; }
+      .call-flow, .capabilities-grid, .why-grid, .timeline-phase, .phase-body, .payment-note, .sandbox-box, .clarity-box, .kill-switch-list, .pillars, .platform-stack, .timeline, .get-started-steps { break-inside: auto !important; page-break-inside: auto !important; }
+      p { break-inside: auto !important; page-break-inside: auto !important; orphans: 3 !important; widows: 3 !important; }
+      h2, h3, h4, .section-title, .safeguard-title, .phase-title, .cap-title, .call-flow-title { break-after: avoid !important; page-break-after: avoid !important; }
+      .section, .exec-summary { padding-top: 28px; padding-bottom: 28px; border-left: none; border-right: none; margin-bottom: 0; }
+      [contenteditable]:hover, [contenteditable]:focus { outline: none; }
+      .cover, .phase-header, .appendix-header, .pricing-table th, .pricing-table .total-row td, .pricing-table .discount-row td, .section-number, .phase-number, .step-num, .pillar, .clarity-box, .sandbox-box, .payment-note, .kill-switch-list li, .call-flow, .flow-footer-step, .zapier-table td:first-child { -webkit-print-color-adjust: exact; print-color-adjust: exact; color-adjust: exact; }
+      @page { size: letter portrait; margin: 0.75in; }
+    }
+
+    /* ============================================================
+       GITHUB PAGES SHARING — ADDED
+       ============================================================ */
+    .gh-section-divider {
+      border-top: 1px solid var(--border);
+      padding-top: 18px; margin-top: 4px;
+    }
+    .gh-section-heading {
+      display: flex; align-items: center; gap: 8px; margin-bottom: 8px;
+    }
+    .gh-section-heading span {
+      font-size: 13px; font-weight: 700; color: var(--navy);
+    }
+    .gh-section-desc {
+      font-size: 12px; color: var(--muted); line-height: 1.6; margin-bottom: 12px;
+    }
+    .gh-creds-row {
+      display: flex; align-items: center; gap: 8px;
+      flex-wrap: wrap; margin-bottom: 10px;
+    }
+    .gh-creds-badge {
+      display: inline-flex; align-items: center; gap: 5px;
+      background: #f0fdf4; border: 1px solid #86efac;
+      border-radius: 5px; padding: 3px 10px;
+      font-size: 11.5px; color: var(--green); font-weight: 600;
+    }
+    .gh-creds-badge-none {
+      display: inline-flex; align-items: center; gap: 5px;
+      background: #fefce8; border: 1px solid #fde68a;
+      border-radius: 5px; padding: 3px 10px;
+      font-size: 11.5px; color: #92400e; font-weight: 600;
+    }
+    .btn-gh-upload {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: #24292f; color: white; border: none;
+      padding: 8px 16px; border-radius: 7px;
+      font-size: 12.5px; font-weight: 600; cursor: pointer;
+      transition: background 0.2s; font-family: inherit;
+    }
+    .btn-gh-upload:hover { background: #1c2128; }
+    .gh-status-box {
+      border-radius: 8px; padding: 12px 14px;
+      display: flex; gap: 10px; align-items: flex-start;
+    }
+    .gh-status-loading { background: #eff6ff; border: 1px solid #bfdbfe; }
+    .gh-status-success { background: #f0fdf4; border: 1px solid #86efac; }
+    .gh-status-error   { background: #fef2f2; border: 1px solid #fecaca; }
+    .gh-status-title { font-size: 13px; font-weight: 700; color: var(--navy); margin-bottom: 3px; }
+    .gh-status-sub { font-size: 11.5px; color: var(--muted); line-height: 1.5; }
+    .gh-spinner {
+      width: 16px; height: 16px; flex-shrink: 0; margin-top: 2px;
+      border: 2px solid #bfdbfe; border-top-color: var(--blue);
+      border-radius: 50%; display: inline-block;
+      animation: ghSpin 0.75s linear infinite;
+    }
+    @keyframes ghSpin { to { transform: rotate(360deg); } }
+    .gh-icon-btn {
+      background: none; border: none; color: var(--muted);
+      cursor: pointer; font-size: 14px; padding: 0 0 0 4px;
+      line-height: 1; flex-shrink: 0; transition: color 0.15s;
+    }
+    .gh-icon-btn:hover { color: var(--text); }
+
+
+
+    /* Published page specific styles */
+    .doc-wrapper { 
+      max-width: 900px; 
+      margin: 30px auto; 
+      padding: 0 20px 60px; 
+    }
+    
+    /* Accept Button Styles */
+    .accept-section {
+      margin-top: 32px;
+      text-align: center;
+      padding: 30px;
+      background: linear-gradient(135deg, #f0fdf4 0%, #eff6ff 100%);
+      border: 2px solid #86efac;
+      border-radius: 12px;
+    }
+    .accept-section h3 {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--navy);
+      margin-bottom: 16px;
+    }
+    .btn-accept {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      background: linear-gradient(135deg, #16a34a 0%, #15803d 100%);
+      color: white;
+      border: none;
+      padding: 16px 40px;
+      border-radius: 10px;
+      font-size: 18px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 15px rgba(22, 163, 74, 0.3);
+    }
+    .btn-accept:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(22, 163, 74, 0.4);
+    }
+    .btn-accept:active {
+      transform: translateY(0);
+    }
+    .btn-accept.accepted {
+      background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+      cursor: default;
+    }
+    
+    /* Success Modal */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.7);
+      backdrop-filter: blur(4px);
+      z-index: 9999;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.3s ease;
+    }
+    .modal-overlay.active {
+      opacity: 1;
+      visibility: visible;
+    }
+    .success-modal {
+      background: white;
+      border-radius: 16px;
+      padding: 40px;
+      max-width: 480px;
+      width: 100%;
+      text-align: center;
+      box-shadow: 0 25px 50px rgba(0, 0, 0, 0.25);
+      transform: scale(0.9);
+      transition: transform 0.3s ease;
+    }
+    .modal-overlay.active .success-modal {
+      transform: scale(1);
+    }
+    .success-icon {
+      width: 80px;
+      height: 80px;
+      background: linear-gradient(135deg, #16a34a 0%, #22c55e 100%);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 24px;
+      font-size: 40px;
+      color: white;
+    }
+    .success-modal h2 {
+      font-size: 24px;
+      font-weight: 800;
+      color: var(--navy);
+      margin-bottom: 16px;
+    }
+    .success-modal p {
+      font-size: 15px;
+      line-height: 1.7;
+      color: var(--text);
+      margin-bottom: 24px;
+    }
+    .success-modal .highlight {
+      background: #f0fdf4;
+      border: 1px solid #86efac;
+      border-radius: 8px;
+      padding: 16px;
+      font-size: 14px;
+      color: #14532d;
+    }
+    .btn-close-modal {
+      margin-top: 24px;
+      background: var(--navy);
+      color: white;
+      border: none;
+      padding: 12px 32px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .btn-close-modal:hover {
+      background: #0f172a;
+    }
+    
+    @media print {
+      body { background: white; }
+      .no-print { display: none !important; }
+      .accept-section { break-inside: avoid; }
+    }
+  </style>
+</head>
+<body>
+  
+<div class="doc-wrapper">
+
+  <!-- COVER -->
+  <div class="cover">
+    <div class="cover-badge" contenteditable="true">Confidential Proposal</div>
+    <h1 contenteditable="true">Trust-First AI Receptionist</h1>
+    <div class="cover-tagline" contenteditable="true">"Restoring Caller Trust. Capturing Every Lead. Protecting Your Brand."</div>
+    <div class="cover-meta">
+      <div class="cover-meta-item">
+        <div class="cover-meta-label">Prepared For</div>
+        <div class="cover-meta-value" contenteditable="true">David Thompson</div>
+        <div class="cover-meta-sub" contenteditable="true">Mr. Handyman of Canton / Woodstock / Marietta</div>
+      </div>
+      <div class="cover-meta-divider"></div>
+      <div class="cover-meta-item">
+        <div class="cover-meta-label">Prepared By</div>
+        <div class="cover-meta-value" contenteditable="true">Jonathan McComb</div>
+        <div class="cover-meta-sub" contenteditable="true">TrueFlow Business Automations &nbsp;·&nbsp; April 1, 2026</div>
+      </div>
+    </div>
+    <div class="cover-id" contenteditable="true">Proposal ID: TFLOW-2026-MHC-001 &nbsp;·&nbsp; Confidential — For Authorized Recipients Only</div>
+  </div>
+
+  <!-- EXECUTIVE SUMMARY -->
+  <div class="exec-summary">
+    <h2 contenteditable="true">Executive Summary: A Fresh Start After ZyraTalk</h2>
+    <p contenteditable="true">Mr. Handyman of Canton, Woodstock, and Marietta handles approximately <strong>90–110 inbound calls per week</strong>. That volume represents a significant and continuous stream of revenue opportunity, but only if those calls are handled in a way that builds trust rather than eroding it. The previous AI implementation, ZyraTalk, created a measurable trust deficit: callers described the experience as <strong>robotic, impersonal, and frustrating</strong>, leading to hang-ups, negative impressions, and bookings that never happened. Restoring caller confidence is not a feature request. It is a business-critical priority.</p>
+    <p contenteditable="true">This proposal presents a fundamentally different approach: a <strong>Trust-First AI Receptionist</strong> built specifically for Mr. Handyman's three service territories. Instead of interrogating callers for data on the first breath, this system leads with genuine, knowledgeable assistance, answering FAQs, confirming service availability by ZIP code, and building real rapport before collecting any contact information. The result is an AI that sounds like a well-trained, confident team member, not a data-extraction script.</p>
+    <p contenteditable="true">Three pillars guide every decision in this engagement:</p>
+    <div class="pillars">
+      <div class="pillar" contenteditable="true"><span class="pillar-title">Trust-First Caller Experience — </span>The AI leads with genuine help, earns rapport, and collects intake data naturally — sounding like a knowledgeable team member, not a bot.</div>
+      <div class="pillar" contenteditable="true"><span class="pillar-title">Proven Stack, Full Visibility — </span>Built on platforms your business already uses, connected through a managed middleware layer, with weekly reporting that shows exactly what the system is handling; no black boxes, no mystery logic.</div>
+      <div class="pillar" contenteditable="true"><span class="pillar-title">Expert Oversight &amp; Non-Disruptive Architecture — </span>This is a fully managed solution designed to work alongside your existing operations, not inside them. Because we manage the architecture externally, we can refine or roll back configurations in real-time with zero downtime or permanent modifications to your primary database. We handle the technical complexity so your team stays focused on the job.</div>
+    </div>
+  </div>
+
+  <!-- SECTION 1: SOLUTION -->
+  <div class="section section-solution">
+    <div class="section-header">
+      <div class="section-number">1</div>
+      <div class="section-title" contenteditable="true">Solution: The Trust-First AI Receptionist</div>
+    </div>
+    <p class="section-intro" contenteditable="true">Every call handled by the AI begins with a genuine introduction and an immediate offer of assistance. It answers common questions — covering service types, coverage areas, general pricing tiers, and what to expect from a visit — <strong>before</strong> it ever asks for a name or phone number. Trust is earned first; data is collected second. This single design philosophy is what separates this system from every generic phone bot on the market, and from ZyraTalk.</p>
+    <p class="section-intro" contenteditable="true">The AI is specifically trained on Mr. Handyman's brand, services, and three-territory service area. It knows the difference between a minor repair request and a larger scope job. It knows which ZIP codes are in territory and which are not. And critically, it knows when to stop and hand the call to a live human agent without making the caller feel abandoned.</p>
+
+    <h3 style="font-size:17px;font-weight:700;color:var(--navy);margin-bottom:12px;" contenteditable="true">Core Capabilities</h3>
+    <div class="capabilities-grid">
+      <div class="cap-card">
+        <div class="cap-card-header"><span class="cap-icon">📚</span><span class="cap-title" contenteditable="true">Deep Knowledge Base Training</span></div>
+        <p class="cap-text" contenteditable="true">Trained on your complete service catalog, common pricing tiers, service area FAQs, and brand voice guidelines specific to Canton, Woodstock, and Marietta. Callers receive accurate, confident answers without being transferred or placed on hold.</p>
+      </div>
+      <div class="cap-card">
+        <div class="cap-card-header"><span class="cap-icon">📍</span><span class="cap-title" contenteditable="true">Live ZIP Code Service Area Qualification</span></div>
+        <p class="cap-text" contenteditable="true">Instantly validates whether a caller's ZIP code falls within your three active service territories. Out-of-area callers receive a polite, empathetic response — never a dead end or confused silence — preserving your brand even when you cannot serve them.</p>
+      </div>
+      <div class="cap-card">
+        <div class="cap-card-header"><span class="cap-icon">🤝</span><span class="cap-title" contenteditable="true">Trust-First Conversation Flow</span></div>
+        <p class="cap-text" contenteditable="true">The AI is scripted never to open with "What's your name and number?" It opens with genuine assistance. Rapport is established through helpfulness, and intake information is collected naturally once the caller already feels heard and served.</p>
+      </div>
+      <div class="cap-card">
+        <div class="cap-card-header"><span class="cap-icon">☎️</span><span class="cap-title" contenteditable="true">Live Warm Transfer to Human Agent</span></div>
+        <p class="cap-text" contenteditable="true">When a caller's needs exceed AI scope, the system executes a warm handoff to a live team member via the routing path appropriate to the chosen architecture option. Conversation context is passed ahead so the caller never has to repeat themselves.</p>
+      </div>
+      <div class="cap-card">
+        <div class="cap-card-header"><span class="cap-icon">🗓️</span><span class="cap-title" contenteditable="true">Booking Intake &amp; Call-Back Scheduling</span></div>
+        <p class="cap-text" contenteditable="true">The AI captures name, address, service type, and preferred appointment windows (e.g., weekday mornings, weekend afternoons) or a preferred call-back time. All confirmed scheduling and call-back follow-ups are handled by your team inside ServiceTitan via a Booking Request, eliminating double-booking risk entirely.</p>
+      </div>
+      <div class="cap-card">
+        <div class="cap-card-header"><span class="cap-icon">🌙</span><span class="cap-title" contenteditable="true">24/7 After-Hours &amp; Peak Coverage</span></div>
+        <p class="cap-text" contenteditable="true">Captures booking intake outside business hours and during high call-volume periods with the same quality of response as during staffed hours. No more lost weekend inquiries or Monday morning voicemail backlogs.</p>
+      </div>
+      <div class="cap-card">
+        <div class="cap-card-header"><span class="cap-icon">⚡</span><span class="cap-title" contenteditable="true">Real-Time Booking Alerts</span></div>
+        <p class="cap-text" contenteditable="true">Every completed intake triggers an instant notification via Email or Google Chat/Teams/Slack (or similar), including caller name, phone number, ZIP code, service requested, action taken, and stated preferred appointment or call-back windows — so your team can follow up within minutes, not hours.</p>
+      </div>
+      <div class="cap-card">
+        <div class="cap-card-header"><span class="cap-icon">📊</span><span class="cap-title" contenteditable="true">Weekly Performance Reports &amp; Tuning</span></div>
+        <p class="cap-text" contenteditable="true">A structured weekly summary covering total calls handled, number of booking requests captured with breakdown by job type or category, and call origin by ZIP code for geographic insight. Call logs remain available for spot review at any time. Includes documented prompt refinements made that week based on real conversation patterns observed in the logs.</p>
+      </div>
+    </div>
+
+    <div class="clarity-box">
+      <h3 contenteditable="true">Managing Your Clarity Configuration</h3>
+      <p contenteditable="true">As your business changes, your assistant's configuration may need to change with it — new service offerings, updated pricing language, adjusted call flows, or seasonal messaging. You have full flexibility in how those updates are handled. You can make changes directly within the Clarity platform yourself, you can grant access and TrueFlow will handle updates on your behalf, or we can walk you through how to make changes in real time during the testing phase so your team is comfortable owning it going forward. The approach is entirely up to you and can shift over time as your comfort with the platform grows. Coordination with TrueFlow before adjusting routing rules ensures the continuity of your call capture and booking flow remains intact once the update goes live.</p>
+    </div>
+  </div>
+
+  <!-- SECTION 2: ARCHITECTURE -->
+  <div class="section section-architecture">
+    <div class="section-header">
+      <div class="section-number">2</div>
+      <div class="section-title" contenteditable="true">Technical Architecture: ServiceTitan + Clarity VoIP + Zapier</div>
+    </div>
+    <p class="section-intro" contenteditable="true">The system is built on platforms your business already has a relationship with, requiring no new vendor contracts for the infrastructure layer. They are connected through a Zapier middleware layer that TrueFlow manages and operates as part of the service engagement. ServiceTitan API access credentials are provided during onboarding and retained on file to support ongoing integration and automation work, including any Zapier-based workflows added over time — so new automations can be deployed without requiring you to re-authorize or locate credentials each time.</p>
+
+    <h3 style="font-size:16px;font-weight:700;color:var(--navy);margin-bottom:12px;" contenteditable="true">Platform Stack Overview</h3>
+    <div class="platform-stack">
+      <div class="platform-item" contenteditable="true"><strong>ServiceTitan CRM</strong> remains the system of record for all booking requests; nothing about that changes.</div>
+      <div class="platform-item" contenteditable="true"><strong>Clarity VoIP</strong> handles call routing, and the two architecture options differ in when and how the AI enters the call path. Under <strong>Option A (AI as Backup to Human)</strong>, calls arrive via the ServiceTitan tracking number, pass through the Clarity main number to a live human receptionist during business hours, and reach the AI only on overflow; after hours, the Clarity main number routes directly to the AI. Under <strong>Option B (AI Takes All Calls First)</strong>, calls from the ServiceTitan tracking number route directly to the AI receptionist number at all hours, and the AI can forward to live staff as needed.</div>
+      <div class="platform-item" contenteditable="true"><strong>Zapier Middleware</strong> is the secure data bridge, operated within TrueFlow's managed Zapier environment and authenticated via a ServiceTitan Zapier App Registration using a dedicated <strong>Client ID and Client Secret (OAuth 2.0)</strong> that you generate directly within your ServiceTitan developer settings. You retain full and independent authority to revoke that access at any time.</div>
+    </div>
+
+    <div class="sandbox-box">
+      <h3 contenteditable="true">ServiceTitan Integration &amp; Sandbox Testing</h3>
+      <p contenteditable="true">Where your ServiceTitan account includes sandbox access, all integration testing will be conducted in your sandbox environment first. This allows us to validate that booking requests are populating correctly before any real customer data is ever touched. Once sandbox testing is confirmed successful, the integration is pointed to your live production environment. Read access to the sandbox account will be needed during this phase to verify that entries are being created accurately. If sandbox access is not available on your current plan, testing will be conducted using clearly labeled test booking entries that are cleaned up before go-live.</p>
+    </div>
+
+    <div class="call-flow">
+      <div class="call-flow-title" contenteditable="true">End-to-End Call Flow</div>
+      <div class="call-flow-entry" contenteditable="true">📞 All Inbound Calls — Caller Dials ServiceTitan Tracking Number</div>
+      <div class="flow-arrow">↓</div>
+      <div class="call-flow-entry" style="font-size:12px;background:rgba(255,255,255,0.04);color:#94a3b8;font-weight:400;" contenteditable="true">Route is determined by the chosen architecture option</div>
+      <div class="flow-arrow">↓</div>
+      <div class="flow-options">
+        <div class="flow-option">
+          <h4 contenteditable="true">Option A — AI as Backup to Human</h4>
+          <div class="flow-time" contenteditable="true">☀️ Business Hours</div>
+          <div class="flow-step" contenteditable="true">ST # → Clarity Main # → Human Receptionist</div>
+          <div class="flow-step" style="color:#94a3b8;font-style:italic;" contenteditable="true">↓ lines full / overflow</div>
+          <div class="flow-step" contenteditable="true">AI Receptionist</div>
+          <div style="margin-top:6px;">
+            <div class="flow-action-item" contenteditable="true">✅ Create Booking Request</div>
+            <div class="flow-action-item" contenteditable="true">📅 Schedule a Call-Back</div>
+            <div class="flow-action-item" contenteditable="true">👤 Forward to Specific Rep's #</div>
+            <div class="flow-action-item" contenteditable="true">📋 Forward to Human Call-Queue</div>
+          </div>
+          <div class="flow-time" contenteditable="true">🌙 After Hours</div>
+          <div class="flow-step" contenteditable="true">ST # → Clarity Main # → AI Receptionist #</div>
+          <div style="margin-top:6px;">
+            <div class="flow-action-item" contenteditable="true">✅ Create Booking Request</div>
+            <div class="flow-action-item" contenteditable="true">📅 Schedule a Call-Back</div>
+          </div>
+        </div>
+        <div class="flow-option">
+          <h4 contenteditable="true">Option B — AI Takes All Calls First</h4>
+          <div class="flow-time" contenteditable="true">☀️ Business Hours</div>
+          <div class="flow-step" contenteditable="true">ST # → AI Receptionist #</div>
+          <div style="margin-top:6px;">
+            <div class="flow-action-item" contenteditable="true">✅ Create Booking Request</div>
+            <div class="flow-action-item" contenteditable="true">📅 Schedule a Call-Back</div>
+            <div class="flow-action-item" contenteditable="true">👤 Forward to Specific Rep's #</div>
+            <div class="flow-action-item" contenteditable="true">📋 Forward to Clarity # Call Queue</div>
+          </div>
+          <div class="flow-time" contenteditable="true">🌙 After Hours</div>
+          <div class="flow-step" contenteditable="true">ST # → AI Receptionist #</div>
+          <div style="margin-top:6px;">
+            <div class="flow-action-item" contenteditable="true">✅ Create Booking Request</div>
+            <div class="flow-action-item" contenteditable="true">📅 Schedule a Call-Back</div>
+          </div>
+        </div>
+      </div>
+      <div class="flow-footer">
+        <div class="flow-footer-note" contenteditable="true">Booking and call-back actions trigger the Zapier data layer — call-forwarding actions route in real time via Clarity VoIP</div>
+        <div class="flow-arrow">↓</div>
+        <div class="flow-footer-step" contenteditable="true">Zapier Middleware — TrueFlow Managed · ServiceTitan App Registration<br><span style="font-size:11px;color:#93c5fd;">(Authenticated via Client ID + Client Secret · OAuth 2.0 · Generated in Your ST Developer Settings)</span></div>
+        <div class="flow-arrow">↓</div>
+        <div class="flow-footer-step" contenteditable="true">ServiceTitan — Booking Request Created</div>
+        <div class="flow-arrow">↓</div>
+        <div class="flow-footer-step alert" contenteditable="true">⚡ Real-Time Alert Fired → Email Notification or Google Chat Message<br><span style="font-size:11px;">Includes: Name · Phone · ZIP · Service Type · Action Taken · Preferred Windows</span></div>
+      </div>
+    </div>
+
+    <h3 style="font-size:16px;font-weight:700;color:var(--navy);margin:28px 0 12px;" contenteditable="true">Zapier Middleware: Detailed Workflow Logic</h3>
+    <p style="font-size:14px;line-height:1.75;margin-bottom:16px;" contenteditable="true">The Zapier layer operates on a structured trigger-filter-action pattern and is managed entirely within TrueFlow's Zapier environment on your behalf. The ServiceTitan Zapier App Registration is created directly from within your ServiceTitan Developer Settings portal, meaning the OAuth credentials are generated and owned by your organization. Because you are the originating source of those credentials, you hold unconditional revocation authority independent of any action by TrueFlow. The Zap scope is restricted to booking request creation only; the integration has no read or write access to existing customer records, invoices, or any other ServiceTitan data. The detailed step-by-step logic is documented in full in Appendix Safeguard 3.</p>
+    <table class="zapier-table">
+      <tbody><tr><td>TRIGGER</td><td contenteditable="true">AI interaction completes (any path, any architecture option) → Full data package sent to Zapier webhook (name, phone, ZIP, service type, preferred windows, action taken: [Booking / CallBack / Transferred / Out-of-Area], timestamp)</td></tr>
+      <tr><td>FILTER 1</td><td contenteditable="true">Is caller ZIP in confirmed service territory? <strong>NO</strong> → Skip ServiceTitan record creation; real-time notification still fires (flag: "Out-of-Area Inquiry — No Booking Created")</td></tr>
+      <tr><td>FILTER 2</td><td contenteditable="true">Is action = Booking Request AND data complete? <strong>YES</strong> → BOOKING REQUEST (Action A, flag: "Standard Booking")</td></tr>
+      <tr><td>FILTER 3</td><td contenteditable="true">Is action = Schedule Call-Back? <strong>YES</strong> → BOOKING REQUEST (Action A, flag: "Call-Back Requested", preferred callback window included)</td></tr>
+      <tr><td>FILTER 4</td><td contenteditable="true">Was call transferred to live agent? <strong>YES</strong> → BOOKING REQUEST (Action A, flag: "Transferred — Context Attached", all collected data included)</td></tr>
+      <tr><td>ACTION A</td><td contenteditable="true">BOOKING REQUEST: Create ServiceTitan Booking Request, all fields populated (name, address, service type, preferred windows, action flag, source: AI Receptionist)</td></tr>
+      <tr><td>ACTION B</td><td contenteditable="true">Regardless of path → Fire real-time notification to Email + Google Chat with full booking summary (name, phone, ZIP, service, action taken, preferred windows)</td></tr>
+      <tr><td>LOGGING</td><td contenteditable="true">All Zap runs stored in Zapier run history for 30 days with full input/output visibility — auditable at any time</td></tr>
+    </tbody></table>
+  </div>
+
+  <!-- SECTION 3: TIMELINE -->
+  <div class="section section-timeline">
+    <div class="section-header">
+      <div class="section-number">3</div>
+      <div class="section-title" contenteditable="true">Implementation Timeline: 3–4 Week Deployment</div>
+    </div>
+    <p class="section-intro" contenteditable="true">Implementation is estimated at <strong>3 weeks</strong>, though an additional week may be added for extended testing or custom build-out needs depending on complexity discovered during setup. Total estimated timeline: <strong>3–4 weeks</strong>. The deployment follows a structured, sequential build process with three rounds of testing completed before the system is considered ready. <strong>Client sign-off occurs at the conclusion of the full setup process</strong> — once all testing rounds are complete and you have had the chance to interact with the experience yourself, you confirm it meets your expectations before the system is considered fully delivered. Nothing is handed off until you're satisfied with what you hear.</p>
+    <div class="timeline">
+      <div class="timeline-phase">
+        <div class="phase-header">
+          <div class="phase-number">1</div>
+          <div class="phase-title" contenteditable="true">Discovery &amp; Access Setup</div>
+          <div class="phase-days" contenteditable="true">Days 1–5 · Week 1</div>
+        </div>
+        <div class="phase-body">
+          <ul class="phase-items">
+            <li contenteditable="true">Generate ServiceTitan Zapier App Registration (Client ID + Client Secret) in your ST Developer Settings — authorizes TrueFlow's managed Zapier environment with controlled, revocable access; credentials retained on file for ongoing integration and automation work</li>
+            <li contenteditable="true">Confirm chosen routing architecture (Option A or Option B), document business hours and after-hours schedules, and map Clarity VoIP forwarding rules and ServiceTitan tracking number destinations</li>
+            <li contenteditable="true">Compile and confirm master ZIP code list for all three territories: Canton, Woodstock, and Marietta</li>
+            <li contenteditable="true">Gather complete service catalog, pricing tiers, FAQs, and brand voice / tone guidelines for knowledge base</li>
+            <li contenteditable="true">Identify preferred human escalation contacts, specific rep direct numbers, and call-queue routing within Clarity</li>
+            <li contenteditable="true">Confirm Email addresses and/or Google Chat webhooks for real-time booking alert delivery</li>
+            <li contenteditable="true">Confirm ServiceTitan sandbox availability; obtain read access to sandbox account for integration validation testing; OR align on a booking record flag that indicates is only for testing purposes and not live scheduling</li>
+          </ul>
+        </div>
+      </div>
+      <div class="timeline-phase">
+        <div class="phase-header">
+          <div class="phase-number">2</div>
+          <div class="phase-title" contenteditable="true">Configuration &amp; Integration Build</div>
+          <div class="phase-days" contenteditable="true">Days 6–12 · Week 2</div>
+        </div>
+        <div class="phase-body">
+          <ul class="phase-items">
+            <li contenteditable="true">Build AI receptionist persona — name, tone, and opening greeting as a knowledgeable Mr. Handyman team member</li>
+            <li contenteditable="true">Train full knowledge base with service catalog, FAQ responses, territory-specific information, and trust-first conversation flows</li>
+            <li contenteditable="true">Implement ZIP code validation logic against confirmed service territory list with graceful out-of-area response paths</li>
+            <li contenteditable="true">Design intake prompts for booking requests, call-back scheduling, and forwarding decision logic per chosen architecture option</li>
+            <li contenteditable="true">Build and map all Zapier workflows: AI output fields → ServiceTitan booking request input fields, including action-type flags</li>
+            <li contenteditable="true">Integration testing conducted against ServiceTitan sandbox environment (where available) to validate booking requests populate correctly before any live data is touched; entries reviewed and confirmed accurate before pointing to production</li>
+            <li contenteditable="true">Configure real-time notification templates for Email and Google Chat including all relevant booking data fields</li>
+            <li contenteditable="true"><strong>Round 1 — Internal Testing:</strong> Each component tested against expected call flows, edge cases, and integration behavior throughout build; foundational quality control before any external interaction with the system</li>
+          </ul>
+        </div>
+      </div>
+      <div class="timeline-phase">
+        <div class="phase-header">
+          <div class="phase-number">3</div>
+          <div class="phase-title" contenteditable="true">Testing &amp; Refinement</div>
+          <div class="phase-days" contenteditable="true">Days 13–18 · Week 3</div>
+        </div>
+        <div class="phase-body">
+          <ul class="phase-items">
+            <li contenteditable="true"><strong>Round 2 — Office Testing:</strong> The assistant is opened to your office team for direct, hands-on interaction; staff call in, test different scenarios, probe the booking flow, and provide feedback on tone, accuracy, and behavior; refinements made based on what your team finds</li>
+            <li contenteditable="true"><strong>Round 3 — Soft-Launch Monitoring:</strong> The assistant is released for after-hours calls first, allowing it to handle real live traffic in a lower-stakes window; this phase runs for several days with active monitoring of real caller interactions and refinements made based on actual caller behavior before transitioning to full production</li>
+            <li contenteditable="true">Collect and incorporate feedback; refine conversation prompts, responses, and tone as directed</li>
+            <li contenteditable="true">Verify and document both kill-switch procedures — Phone Kill-Switch and API Kill-Switch confirmed before full production traffic is routed</li>
+          </ul>
+        </div>
+      </div>
+      <div class="timeline-phase">
+        <div class="phase-header">
+          <div class="phase-number">4</div>
+          <div class="phase-title" contenteditable="true">Sign-Off &amp; Go-Live</div>
+          <div class="phase-days" contenteditable="true">Days 19–21 · Week 3–4</div>
+        </div>
+        <div class="phase-body">
+          <ul class="phase-items">
+            <li contenteditable="true">Client sign-off: once all three testing rounds are complete and David Thompson has confirmed the experience meets expectations, the system is approved for full production handoff</li>
+            <li contenteditable="true">Activate full production call forwarding rules per the confirmed architecture option: main Clarity business number unchanged; all routing changes are additive and fully reversible</li>
+            <li contenteditable="true">Confirm active monitoring is live; verify first real-call booking alert notification fires correctly to Email or Google Chat (or similar tool)</li>
+            <li contenteditable="true">Deliver client-facing rollback checklist; both kill-switch procedures documented for your team</li>
+            <li contenteditable="true">Transition to standard monthly managed service cadence</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SECTION 4: INVESTMENT -->
+  <div class="section section-investment">
+    <div class="section-header">
+      <div class="section-number">4</div>
+      <div class="section-title" contenteditable="true">Investment Structure</div>
+    </div>
+    <p class="section-intro" contenteditable="true">All fees are structured to align our incentives with yours. The one-time setup fee covers the full build, configuration, integration, and supervised launch of your AI voice assistant. Monthly service fees are billed <strong>in advance</strong> at the start of each month.</p>
+    <table class="pricing-table">
+      <thead>
+        <tr>
+          <th contenteditable="true">Line Item</th>
+          <th contenteditable="true">Description</th>
+          <th contenteditable="true">One-Time Fee</th>
+          <th contenteditable="true">Monthly Fee</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><div class="line-item-title" contenteditable="true">AI Voice Assistant Build</div></td>
+          <td><div class="line-item-desc" contenteditable="true">Knowledge base training, trust-first persona scripting, full conversation flow design for chosen architecture option (business hours and after-hours paths), ZIP validation logic, booking intake and call-back scheduling architecture</div></td>
+          <td contenteditable="true">$879</td>
+          <td contenteditable="true">—</td>
+        </tr>
+        <tr>
+          <td><div class="line-item-title" contenteditable="true">ServiceTitan Integration</div></td>
+          <td><div class="line-item-desc" contenteditable="true">ServiceTitan Zapier App Registration setup (Client ID / Client Secret), Clarity VoIP routing configuration per confirmed architecture option, complete Zapier workflow build and field mapping within TrueFlow's managed environment, sandbox validation testing</div></td>
+          <td contenteditable="true">$229</td>
+          <td contenteditable="true">—</td>
+        </tr>
+        <tr class="total-row">
+          <td contenteditable="true"><strong>Setup Fee Total</strong></td>
+          <td><div class="line-item-desc" contenteditable="true">Due in full at contract signing · Covers complete build through supervised go-live</div></td>
+          <td contenteditable="true"><strong>$1,108</strong></td>
+          <td contenteditable="true">—</td>
+        </tr>
+        <tr>
+          <td><div class="line-item-title" contenteditable="true">Managed Service</div></td>
+          <td><div class="line-item-desc" contenteditable="true">Active system monitoring, weekly performance reports, ongoing prompt refinement, Zapier workflow maintenance within TrueFlow's managed environment, and priority support response</div></td>
+          <td contenteditable="true">—</td>
+          <td contenteditable="true"><strong>$429 / mo</strong></td>
+        </tr>
+        <tr>
+          <td><div class="line-item-title" contenteditable="true">Voice AI Usage (Pass-Through)</div></td>
+          <td><div class="line-item-desc" contenteditable="true">Billed at actual cost based on call volume and duration. Estimated at ~40 AI-handled calls/week × 4.33 weeks × 2 min avg. × avg $0.25/min (~346 min/month). Your actual usage will vary and is invoiced at cost with no markup.</div></td>
+          <td contenteditable="true">—</td>
+          <td contenteditable="true">~$87 / mo est.</td>
+        </tr>
+        <tr class="discount-row">
+          <td contenteditable="true"><strong>🎉 Founder's Discount</strong></td>
+          <td><div class="line-item-desc" contenteditable="true">35% off Setup fee if signed by 4/8/2026. + Setup month's prorated monthly management fee waived.</div></td>
+          <td contenteditable="true"><strong>$720.20</strong></td>
+          <td contenteditable="true">~$516 est.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="payment-note">
+      <strong contenteditable="true">💡 Payment Schedule</strong>
+      <span contenteditable="true">The first half of the discounted one-time setup fee is due upon signed agreement and initiates Phase 1 work immediately. Monthly service fees of <strong>$429</strong> are billed <strong>in advance</strong> at the start of each billing period, beginning with your first full month of service following go-live. Voice usage is billed as a pass-through line item at actual cost when AI credits need replenishing. AI credit balances can be replenished in $10 increments.</span>
+      <br><br>
+      <em style="font-size:12px;" contenteditable="true">* All pricing is in USD. Usage estimates are based on approximately 40 AI-handled calls per week and are approximations only; actual usage may vary. No long-term contract required after the initial setup period.</em>
+    </div>
+  </div>
+
+  <!-- WHY TRUEFLOW -->
+  <div class="section section-why">
+    <div class="section-header">
+      <div class="section-number" style="background:var(--blue);">★</div>
+      <div class="section-title" contenteditable="true">Why TrueFlow — Not Just Another AI Vendor</div>
+    </div>
+    <p class="section-intro" contenteditable="true">You have already experienced the damage that a poorly designed AI phone system can do to your brand. ZyraTalk treated your callers as data inputs rather than people. TrueFlow is built on a different premise: that automation should make your business feel more human, not less. Every design decision in this system, from the opening line of the conversation to the way partial leads are handled, is made with your caller's experience and your team's workflow as the top priorities.</p>
+    <div class="why-grid">
+      <div class="why-card">
+        <h3 contenteditable="true">🎯 Purpose-Built, Not Generic</h3>
+        <p contenteditable="true">Every script, flow, and FAQ response is written specifically for Mr. Handyman — your services, your territories, your brand voice. Nothing is copied from a template or repurposed from another client.</p>
+      </div>
+      <div class="why-card">
+        <h3 contenteditable="true">🔒 You Stay in Control</h3>
+        <p contenteditable="true">TrueFlow manages the Zapier automation layer on your behalf, but the credentials powering it are yours. Your ServiceTitan OAuth keys, generated in your own developer settings, can be revoked by you instantly and independently. Your Clarity routing rules remain entirely under your control. All workflow documentation and Zap configurations are exported and transferred to you upon any cancellation.</p>
+      </div>
+      <div class="why-card">
+        <h3 contenteditable="true">👁️ Full Transparency, Every Week</h3>
+        <p contenteditable="true">Weekly reports show exactly how the AI performed: what callers asked, where it transferred, how many booking requests were captured by job type and ZIP, and what was missed. No black boxes. No "trust us, it's working."</p>
+      </div>
+      <div class="why-card">
+        <h3 contenteditable="true">⚙️ Human-Centered Automation</h3>
+        <p contenteditable="true">The AI handles volume so your team can handle relationships. Whether it creates a booking request, schedules a call-back, or forwards to a live agent, every outcome is designed to move the caller toward a resolved experience, not a frustrated dead end.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- GET STARTED -->
+  <div class="section section-getstarted">
+    <div class="section-header">
+      <div class="section-number" style="background:var(--green);font-size:18px;">→</div>
+      <div class="section-title" contenteditable="true">Ready to Rebuild Caller Trust?</div>
+    </div>
+    <p class="section-intro" contenteditable="true">Deployment begins within 24 hours of a signed agreement. Here is everything needed to get started:</p>
+    <div class="get-started-steps">
+      <div class="get-started-step">
+        <div class="step-num">1</div>
+        <div class="step-content"><strong contenteditable="true">Review &amp; Approve This Proposal</strong><span contenteditable="true">Sign the acceptance block below or reply via email with written approval to initiate the agreement.</span></div>
+      </div>
+      <div class="get-started-step">
+        <div class="step-num">2</div>
+        <div class="step-content"><strong contenteditable="true">Submit the first half discounted Setup Fee of $360.10</strong><span contenteditable="true">An SOW agreement will be issued with an invoice within 24 hours of your signed approval. ACH and card accepted. This covers the complete build through supervised go-live.</span></div>
+      </div>
+      <div class="get-started-step">
+        <div class="step-num">3</div>
+        <div class="step-content"><strong contenteditable="true">Attend a 30-Minute Kickoff Call</strong><span contenteditable="true">We collect your ServiceTitan API access, Clarity VoIP credentials, confirm your preferred routing architecture (Option A or Option B), document business hours and after-hours schedules, finalize the confirmed ZIP list, and gather FAQ content to begin Phase 1 immediately.</span></div>
+      </div>
+      <div class="get-started-step">
+        <div class="step-num">4</div>
+        <div class="step-content"><strong contenteditable="true">Phase 1 Begins Within 24 Hours of Kickoff</strong><span contenteditable="true">Discovery, access configuration, and knowledge base content gathering commence the next business day.</span></div>
+      </div>
+      <div class="get-started-step">
+        <div class="step-num">5</div>
+        <div class="step-content"><strong contenteditable="true">AI Receptionist is Live in 3 to 4 Weeks</strong><span contenteditable="true">Trust-first, fully tested across three rounds of review, with both kill-switches documented and your team trained on rollback procedures. An additional week may be added if extended testing or build-out is needed.</span></div>
+      </div>
+    </div>
+
+    <div class="valid-through" contenteditable="true">This proposal is valid through <strong>April 30, 2026</strong>.</div>
+    <div class="contact-block">
+      <strong contenteditable="true">Questions before signing? Contact TrueFlow Business Automations:</strong><br>
+      <span contenteditable="true"><a href="mailto:jonathan@tflow-automations.com">jonathan@tflow-automations.com</a> &nbsp;·&nbsp; (678) 235-4818</span>
+    </div>
+
+    <h3 style="font-size:16px;font-weight:700;color:var(--navy);margin:32px 0 16px;" contenteditable="true">Client Acceptance</h3>
+    <div class="signature-block" id="signatureBlock">
+      <div id="sigPartyClient">
+        <div class="sig-label" contenteditable="true">Signature — David Thompson, Mr. Handyman of Canton / Woodstock / Marietta</div>
+        <div class="sig-line" id="clientSigLine"></div>
+        <div class="sig-date" id="clientSigDate" contenteditable="true">Date: ___________________________</div>
+      </div>
+      <div>
+        <div class="sig-label" contenteditable="true">TrueFlow AI Solutions — Authorized Representative</div>
+        <div class="sig-line"></div>
+        <div class="sig-date" contenteditable="true">Date: ___________________________</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- APPENDIX -->
+  <div class="section-appendix">
+    <div class="appendix-header">
+      <h2 contenteditable="true">Appendix: Operational Safeguards &amp; Architecture Detail</h2>
+      <p contenteditable="true">Three independent controls, because you should never feel locked into any system, at any time.</p>
+    </div>
+    <div class="appendix-body">
+
+      <div class="safeguard-block">
+        <div class="safeguard-title" contenteditable="true">🔴 Safeguard 1 — The Phone Kill-Switch</div>
+        <div class="safeguard-body">
+          <p contenteditable="true">The AI receptionist intercepts calls through call forwarding rules within your Clarity VoIP configuration and, depending on the chosen architecture, your ServiceTitan tracking number routing. Your primary Mr. Handyman business number never changes, is never ported, and is never dependent on TrueFlow infrastructure. The AI answers calls only because a routing rule has been configured to direct them there, and every one of those rules is a single toggle that you control independently.</p>
+          <p contenteditable="true"><strong>Option A — AI as Backup to Human:</strong> The AI is active in two distinct windows. During business hours it activates only on overflow from the human receptionist; after hours it is the primary handler via the Clarity main number. To kill business-hours AI coverage, log into the Clarity VoIP admin panel and disable the overflow forwarding rule that routes to the AI endpoint. To kill after-hours AI coverage, update the after-hours forwarding rule in Clarity VoIP to point to voicemail or an after-hours message instead of the AI number. Each change takes fewer than 60 seconds and takes effect on the very next inbound call.</p>
+          <p contenteditable="true"><strong>Option B — AI Takes All Calls First:</strong> The ServiceTitan tracking number routes directly to the AI receptionist number at all hours. To disable AI answering entirely, update the forwarding destination of that tracking number within ServiceTitan — or update the corresponding Clarity routing rule — to point directly to the Clarity main number or voicemail. This takes fewer than 60 seconds and takes effect immediately on the next inbound call.</p>
+          <ul class="kill-switch-list">
+            <li contenteditable="true">Zero impact on ServiceTitan CRM — no records are altered, deleted, or locked</li>
+            <li contenteditable="true">Zero impact on Zapier workflows — they simply stop receiving trigger data and go dormant</li>
+            <li contenteditable="true">Callers experience no outage, no error message, and no disruption to service</li>
+            <li contenteditable="true">All routing rules can be re-enabled instantly at any time without any reconfiguration</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="safeguard-block">
+        <div class="safeguard-title" contenteditable="true">🔵 Safeguard 2 — The API Kill-Switch</div>
+        <div class="safeguard-body">
+          <p contenteditable="true">The integration between TrueFlow's managed Zapier environment and ServiceTitan is authenticated via a <strong>Zapier App Registration</strong> that you create directly within your own ServiceTitan Developer Settings portal. This registration generates a dedicated <strong>Client ID and Client Secret</strong> using the OAuth 2.0 protocol. These credentials are the only authorized pathway for Zapier to write data into ServiceTitan. Credentials are maintained on file by TrueFlow as part of the active service engagement to support ongoing build and automation work. Because you are the originating source of these credentials within your own ServiceTitan instance, you hold unconditional revocation authority independent of any action by TrueFlow.</p>
+          <p contenteditable="true"><strong>To disable all Zapier-to-ServiceTitan activity:</strong> Navigate to ServiceTitan → Settings → Developer → App Registrations → locate the TrueFlow Zapier registration → click Revoke or Rotate the Client Secret. This action takes effect in real time, immediately and permanently invalidating all Zapier authentication attempts. Zero ServiceTitan data is modified or deleted by this action.</p>
+          <ul class="kill-switch-list">
+            <li contenteditable="true">Revocation is instantaneous — no propagation delay, no grace period</li>
+            <li contenteditable="true">All existing ServiceTitan booking records and customer data are completely unaffected</li>
+            <li contenteditable="true">API scope is limited strictly to booking request creation only — no access to existing records, invoices, dispatching, or any other ST module</li>
+            <li contenteditable="true">A new Client Secret can be issued at any time to re-establish the integration with zero reconfiguration of conversation flows or AI logic</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="safeguard-block">
+        <div class="safeguard-title" contenteditable="true">⚙️ Safeguard 3 — Zapier Middleware: Complete Architecture Breakdown</div>
+        <div class="safeguard-body">
+          <p contenteditable="true">The Zapier layer is the connective tissue between the AI receptionist and ServiceTitan. Note that call-forwarding actions (forward to specific rep's number, forward to call queue) are executed in real time via Clarity VoIP during the live call; the Zapier layer captures the interaction data simultaneously and creates the appropriate ServiceTitan Booking Request regardless of which routing outcome occurred. All outcomes — standard bookings, call-back scheduling requests, and transferred calls — are recorded as Booking Requests differentiated by an action flag. Below is an example step-by-step logic of the middleware workflow designed for your needs:</p>
+          <table class="zapier-table">
+            <tbody><tr><td>TRIGGER</td><td contenteditable="true">AI interaction completes (any path, any architecture option) → Full data package sent to Zapier webhook (name, phone, ZIP, service type, preferred windows, action taken: [Booking / CallBack / Transferred / Out-of-Area], timestamp)</td></tr>
+            <tr><td>FILTER 1</td><td contenteditable="true">Is caller ZIP in confirmed service territory? <strong>NO</strong> → Skip ServiceTitan record creation; real-time notification still fires (flag: "Out-of-Area Inquiry — No Booking Created")</td></tr>
+            <tr><td>FILTER 2</td><td contenteditable="true">Is action = Booking Request AND data complete? <strong>YES</strong> → BOOKING REQUEST (Action A, flag: "Standard Booking")</td></tr>
+            <tr><td>FILTER 3</td><td contenteditable="true">Is action = Schedule Call-Back? <strong>YES</strong> → BOOKING REQUEST (Action A, flag: "Call-Back Requested", preferred callback window included)</td></tr>
+            <tr><td>FILTER 4</td><td contenteditable="true">Was call transferred to live agent? <strong>YES</strong> → BOOKING REQUEST (Action A, flag: "Transferred — Context Attached", all collected data included)</td></tr>
+            <tr><td>ACTION A</td><td contenteditable="true">BOOKING REQUEST: Create ServiceTitan Booking Request, all fields populated (name, address, service type, preferred windows, action flag, source: AI Receptionist)</td></tr>
+            <tr><td>ACTION B</td><td contenteditable="true">Regardless of path → Fire real-time notification to Email + Google Chat with full booking summary (name, phone, ZIP, service, action taken, preferred windows)</td></tr>
+            <tr><td>LOGGING</td><td contenteditable="true">All Zap runs stored in Zapier run history for 30 days with full input/output visibility — auditable at any time</td></tr>
+          </tbody></table>
+          <p style="margin-top:14px;font-size:13px;color:var(--muted);" contenteditable="true">All Zaps are built and maintained within TrueFlow's managed Zapier account as part of the active service engagement.</p>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="doc-footer" contenteditable="true">
+    TrueFlow AI Solutions &nbsp;·&nbsp; Proposal ID: TFLOW-2026-MHC-001 &nbsp;·&nbsp;
+    Prepared exclusively for Mr. Handyman of Canton / Woodstock / Marietta &nbsp;·&nbsp;
+    Confidential &amp; Proprietary &nbsp;·&nbsp; Valid through April 30, 2026
+  </div>
+
+
+</div>
+  
+  <!-- Success Modal -->
+  <div class="modal-overlay" id="successModal">
+    <div class="success-modal">
+      <div class="success-icon">✓</div>
+      <h2>Excellent!</h2>
+      <p>We've received your approval.</p>
+      <div class="highlight">
+        <strong>TrueFlow has been notified.</strong><br><br>
+        We are preparing your Statement of Work (SOW) and formal contract now — keep an eye on your inbox shortly so we can get started!
+      </div>
+      <button class="btn-close-modal" onclick="closeModal()">Got It</button>
+    </div>
+  </div>
+  
+  <script>
+    // Disable editing in published version
+    document.querySelectorAll('[contenteditable]').forEach(el => el.removeAttribute('contenteditable'));
+    
+    // Replace signature block with Accept button
+    const sigBlock = document.getElementById('signatureBlock');
+    if (sigBlock) {
+      sigBlock.outerHTML = `
+        <div class="accept-section" id="acceptSection">
+          <h3>Ready to Move Forward?</h3>
+          <button class="btn-accept" id="acceptBtn" onclick="handleAccept()">
+            ✓ Accept & Proceed
+          </button>
+        </div>
+      `;
+    }
+    
+    function handleAccept() {
+      const btn = document.getElementById('acceptBtn');
+      const modal = document.getElementById('successModal');
+      
+      // Update button state
+      btn.innerHTML = '✓ Accepted';
+      btn.classList.add('accepted');
+      btn.onclick = null;
+      
+      // Show success modal
+      modal.classList.add('active');
+      
+      // TODO: Send acceptance notification to backend
+      console.log('Proposal accepted:', new Date().toISOString());
+    }
+    
+    function closeModal() {
+      document.getElementById('successModal').classList.remove('active');
+    }
+    
+    // Close modal on overlay click
+    document.getElementById('successModal').onclick = function(e) {
+      if (e.target === this) closeModal();
+    };
+  </script>
+</body>
+</html>
