@@ -1,0 +1,1247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Generated Proposal</title>
+  <style>
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --navy: #1a2744;
+      --blue: #2563eb;
+      --light-blue: #eff6ff;
+      --accent: #f59e0b;
+      --green: #16a34a;
+      --text: #1e293b;
+      --muted: #64748b;
+      --border: #e2e8f0;
+      --card-bg: #f8fafc;
+      --font-size-base: 15px;
+    }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      font-size: var(--font-size-base);
+      color: var(--text);
+      background: #f1f5f9;
+      line-height: 1.6;
+    }
+
+    [contenteditable]:hover { outline: 1px dashed #93c5fd; border-radius: 3px; cursor: text; }
+    [contenteditable]:focus { outline: 2px solid var(--blue); border-radius: 3px; }
+    [contenteditable="false"]:hover,
+    [contenteditable="false"]:focus { outline: none !important; cursor: default; }
+
+    /* === TOOLBAR === */
+    .toolbar {
+      position: sticky; top: 0; z-index: 100;
+      background: var(--navy); color: white;
+      padding: 10px 20px;
+      display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+    }
+    .toolbar-title { font-size: 12px; font-weight: 600; color: #94a3b8; flex: 1; min-width: 160px; }
+    .toolbar-btn {
+      background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2);
+      color: white; padding: 5px 12px; border-radius: 5px; cursor: pointer;
+      font-size: 12px; white-space: nowrap; transition: background 0.2s;
+    }
+    .toolbar-btn:hover { background: rgba(255,255,255,0.2); }
+    .toolbar-btn.pb-btn { background: rgba(99,102,241,0.25); border-color: rgba(129,140,248,0.5); }
+    .toolbar-btn.pb-btn:hover { background: rgba(99,102,241,0.45); }
+    .toolbar-btn.share-btn { background: rgba(37,99,235,0.35); border-color: rgba(96,165,250,0.5); }
+    .toolbar-btn.share-btn:hover { background: rgba(37,99,235,0.55); }
+    .toolbar-divider { width: 1px; height: 24px; background: rgba(255,255,255,0.2); margin: 0 2px; }
+
+    /* === SHARE BANNER (shown in share/recipient mode) === */
+    .share-banner {
+      background: var(--navy); color: white;
+      text-align: center; padding: 11px 20px;
+      font-size: 13px; font-weight: 500; line-height: 1.5;
+    }
+    .share-banner em { color: #94a3b8; font-style: normal; font-size: 12px; }
+
+    /* === MODAL === */
+    .modal-overlay {
+      position: fixed; inset: 0;
+      background: rgba(15,23,42,0.65);
+      z-index: 9999;
+      display: flex; align-items: center; justify-content: center;
+      padding: 20px;
+      backdrop-filter: blur(3px);
+    }
+    .modal-box {
+      background: white; border-radius: 14px;
+      width: 100%; max-width: 500px; max-height: 88vh;
+      overflow-y: auto;
+      box-shadow: 0 24px 64px rgba(0,0,0,0.3);
+    }
+    .modal-header {
+      padding: 18px 22px 14px; border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; gap: 10px;
+      position: sticky; top: 0; background: white;
+      border-radius: 14px 14px 0 0; z-index: 2;
+    }
+    .modal-header h3 { font-size: 16px; font-weight: 700; color: var(--navy); flex: 1; }
+    .modal-close-btn {
+      background: #f1f5f9; border: none;
+      width: 28px; height: 28px; border-radius: 50%;
+      font-size: 15px; cursor: pointer; color: var(--muted);
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 700; transition: background 0.2s;
+    }
+    .modal-close-btn:hover { background: #e2e8f0; color: var(--text); }
+    .modal-body { padding: 18px 22px 22px; }
+    .modal-section { margin-bottom: 18px; }
+    .modal-section:last-child { margin-bottom: 0; }
+    .modal-lbl {
+      display: block; font-size: 11px; font-weight: 700;
+      color: var(--muted); text-transform: uppercase;
+      letter-spacing: 0.8px; margin-bottom: 6px;
+    }
+    .modal-inp {
+      width: 100%; padding: 8px 11px;
+      border: 1px solid var(--border); border-radius: 7px;
+      font-size: 13.5px; color: var(--text); font-family: inherit;
+      outline: none; transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .modal-inp:focus { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(37,99,235,0.1); }
+    .modal-field-hint { font-size: 11px; color: var(--muted); margin-top: 4px; }
+    .email-add-row { display: flex; gap: 8px; }
+    .email-add-row .modal-inp { flex: 1; }
+    .btn-add {
+      background: var(--blue); color: white; border: none;
+      padding: 8px 14px; border-radius: 7px;
+      font-size: 13px; font-weight: 600; cursor: pointer;
+      white-space: nowrap; transition: background 0.2s;
+    }
+    .btn-add:hover { background: #1d4ed8; }
+    .btn-add:disabled { background: #94a3b8; cursor: not-allowed; }
+    .chips-wrap { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+    .e-chip {
+      display: inline-flex; align-items: center; gap: 5px;
+      background: #eff6ff; border: 1px solid #bfdbfe;
+      border-radius: 20px; padding: 3px 8px 3px 11px;
+      font-size: 12px; color: #1e40af; font-weight: 500;
+    }
+    .e-chip-x {
+      background: none; border: none; color: #93c5fd;
+      cursor: pointer; font-size: 14px; padding: 0;
+      line-height: 1; font-weight: 800;
+    }
+    .e-chip-x:hover { color: #2563eb; }
+    .link-box {
+      background: #f8fafc; border: 1px solid var(--border);
+      border-radius: 7px; padding: 10px 13px;
+      font-size: 11.5px; font-family: 'Courier New', monospace;
+      color: var(--navy); word-break: break-all; line-height: 1.55;
+      margin-bottom: 10px; user-select: all;
+    }
+    .link-btn-row { display: flex; gap: 8px; flex-wrap: wrap; }
+    .btn-copy-link {
+      background: var(--navy); color: white; border: none;
+      padding: 7px 15px; border-radius: 7px;
+      font-size: 12.5px; font-weight: 600; cursor: pointer;
+      transition: background 0.2s;
+    }
+    .btn-copy-link:hover { background: #0f172a; }
+    .btn-copy-link.copied { background: var(--green); }
+    .btn-regen {
+      background: var(--card-bg); color: var(--text);
+      border: 1px solid var(--border);
+      padding: 7px 13px; border-radius: 7px;
+      font-size: 12.5px; font-weight: 600;
+      cursor: pointer; transition: background 0.2s;
+    }
+    .btn-regen:hover { background: #e2e8f0; }
+    .modal-warn {
+      background: #fffbeb; border: 1px solid #fde68a;
+      border-left: 4px solid var(--accent); border-radius: 8px;
+      padding: 12px 14px; font-size: 12px; color: #78350f; line-height: 1.65;
+    }
+    .modal-warn strong { display: block; margin-bottom: 3px; font-size: 12.5px; color: #92400e; }
+
+    /* === INTERACTIVE SIGNATURE (share / recipient mode) === */
+    .sig-click-area {
+      min-height: 54px; border: 2px dashed #c7d2fe;
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; transition: border-color 0.2s, background 0.2s;
+      margin-bottom: 8px; background: #fafbff; padding: 8px 12px;
+    }
+    .sig-click-area:hover { border-color: var(--blue); background: #eff6ff; }
+    .sig-click-ph {
+      font-size: 13px; color: #a5b4fc;
+      font-style: italic; pointer-events: none; text-align: center;
+    }
+    .sig-inp-wrap { display: flex; flex-direction: column; gap: 8px; margin-bottom: 8px; }
+    .sig-type-inp {
+      width: 100%; padding: 7px 10px;
+      border: 1px solid var(--border); border-radius: 6px;
+      font-size: 13px; font-family: inherit;
+      outline: none; box-sizing: border-box; transition: border-color 0.2s;
+    }
+    .sig-type-inp:focus { border-color: var(--blue); }
+    .sig-cursive {
+      font-family: cursive; font-size: 28px; color: var(--navy);
+      padding: 4px 4px 2px; border-bottom: 1.5px solid #c7d2fe;
+      min-height: 44px; line-height: 1.2;
+    }
+    .sig-action-row { display: flex; gap: 8px; align-items: center; }
+    .btn-sign-doc {
+      background: var(--green); color: white; border: none;
+      padding: 7px 16px; border-radius: 6px;
+      font-size: 12.5px; font-weight: 700; cursor: pointer;
+      transition: background 0.2s;
+    }
+    .btn-sign-doc:hover { background: #15803d; }
+    .btn-sign-doc:disabled { background: #94a3b8; cursor: not-allowed; }
+    .btn-clr-sig {
+      background: none; border: none; color: var(--muted);
+      font-size: 12px; cursor: pointer; text-decoration: underline; padding: 0;
+    }
+    .sig-final-wrap { margin-bottom: 8px; }
+    .sig-final-name {
+      font-family: cursive; font-size: 32px; color: var(--navy);
+      border-bottom: 2px solid var(--navy); padding-bottom: 2px;
+      display: inline-block; min-width: 180px;
+    }
+    .sig-final-badge {
+      display: inline-flex; align-items: center; gap: 4px;
+      background: #f0fdf4; border: 1px solid #86efac;
+      border-radius: 4px; padding: 2px 8px;
+      font-size: 11px; color: var(--green); font-weight: 700;
+      margin-left: 10px; vertical-align: middle;
+      font-family: 'Segoe UI', system-ui, sans-serif;
+    }
+
+    /* === WRAPPER === */
+    .doc-wrapper { max-width: 900px; margin: 30px auto; padding: 0 20px 60px; }
+
+    /* === COVER === */
+    .cover {
+      background: var(--navy); color: white;
+      padding: 48px 48px 40px; border-radius: 12px 12px 0 0; text-align: center;
+    }
+    .cover-badge {
+      display: inline-block; background: var(--blue); color: white;
+      font-size: 11px; font-weight: 700; letter-spacing: 1.5px;
+      text-transform: uppercase; padding: 4px 14px; border-radius: 20px; margin-bottom: 20px;
+    }
+    .cover h1 { font-size: 32px; font-weight: 800; margin-bottom: 8px; letter-spacing: -0.5px; }
+    .cover-tagline { font-size: 15px; color: #94a3b8; font-style: italic; margin: 14px 0 28px; }
+    .cover-meta {
+      display: grid; grid-template-columns: 1fr 1px 1fr;
+      background: rgba(255,255,255,0.05); border-radius: 8px;
+      padding: 20px; text-align: left; max-width: 560px; margin: 0 auto 24px;
+    }
+    .cover-meta-divider { background: rgba(255,255,255,0.15); }
+    .cover-meta-item { padding: 0 20px; }
+    .cover-meta-label { font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: #94a3b8; margin-bottom: 4px; }
+    .cover-meta-value { font-size: 14px; font-weight: 600; color: white; }
+    .cover-meta-sub { font-size: 12px; color: #94a3b8; }
+    .cover-id { font-size: 11px; color: #64748b; }
+
+    /* === SECTIONS === */
+    .section {
+      background: white; padding: 40px 48px;
+      border-left: 1px solid var(--border); border-right: 1px solid var(--border); border-bottom: 1px solid var(--border);
+    }
+    .exec-summary {
+      background: white; padding: 40px 48px;
+      border-left: 1px solid var(--border); border-right: 1px solid var(--border); border-bottom: 1px solid var(--border);
+    }
+    .exec-summary h2 { font-size: 22px; font-weight: 700; color: var(--navy); margin-bottom: 16px; }
+    .exec-summary p { margin-bottom: 14px; line-height: 1.75; }
+    .section-header { display: flex; align-items: center; gap: 14px; margin-bottom: 24px; }
+    .section-number {
+      width: 36px; height: 36px; min-width: 36px; background: var(--navy); color: white;
+      font-size: 16px; font-weight: 800; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+    }
+    .section-title { font-size: 22px; font-weight: 700; color: var(--navy); }
+    .section-intro { margin-bottom: 20px; line-height: 1.75; }
+
+    /* === PILLARS === */
+    .pillars { display: flex; flex-direction: column; gap: 12px; margin-top: 20px; }
+    .pillar { padding: 14px 18px; background: var(--light-blue); border-left: 4px solid var(--blue); border-radius: 6px; font-size: 14px; line-height: 1.65; }
+    .pillar-title { font-weight: 700; color: var(--navy); }
+
+    /* === CAPABILITY CARDS === */
+    .capabilities-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin-top: 20px; }
+    .cap-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 8px; padding: 18px 20px; }
+    .cap-card-header { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+    .cap-icon { font-size: 20px; }
+    .cap-title { font-weight: 700; font-size: 14px; color: var(--navy); }
+    .cap-text { font-size: 13px; color: var(--muted); line-height: 1.6; }
+
+    /* === CLARITY BOX === */
+    .clarity-box {
+      background: #fffbeb; border: 1px solid #fde68a;
+      border-left: 4px solid var(--accent); border-radius: 8px;
+      padding: 20px 24px; margin-top: 28px;
+    }
+    .clarity-box h3 { font-size: 15px; font-weight: 700; color: #92400e; margin-bottom: 10px; }
+    .clarity-box p { font-size: 14px; color: #78350f; line-height: 1.7; }
+
+    /* === PLATFORM STACK === */
+    .platform-stack { display: flex; flex-direction: column; gap: 12px; margin: 20px 0; }
+    .platform-item { padding: 14px 18px; background: var(--card-bg); border: 1px solid var(--border); border-radius: 8px; font-size: 14px; line-height: 1.65; }
+    .platform-item strong { color: var(--navy); }
+
+    /* === SANDBOX BOX === */
+    .sandbox-box { background: #f0f9ff; border: 1px solid #bae6fd; border-left: 4px solid #0ea5e9; border-radius: 8px; padding: 18px 22px; margin-top: 20px; font-size: 14px; color: #0c4a6e; line-height: 1.7; }
+    .sandbox-box h3 { font-size: 15px; font-weight: 700; margin-bottom: 8px; }
+
+    /* === CALL FLOW === */
+    .call-flow { background: var(--navy); color: white; border-radius: 10px; padding: 28px 32px; margin-top: 24px; font-size: 13px; }
+    .call-flow-title { font-size: 13px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 14px; }
+    .call-flow-entry { text-align: center; font-size: 14px; font-weight: 600; padding: 10px; background: rgba(255,255,255,0.07); border-radius: 6px; margin-bottom: 6px; }
+    .flow-arrow { text-align: center; color: #94a3b8; margin: 4px 0; font-size: 16px; }
+    .flow-options { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 8px 0; }
+    .flow-option { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 16px; }
+    .flow-option h4 { font-size: 12px; font-weight: 700; color: #60a5fa; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 12px; }
+    .flow-time { font-size: 11px; color: var(--accent); font-weight: 600; text-transform: uppercase; letter-spacing: 0.8px; margin: 10px 0 5px; }
+    .flow-step { font-size: 12px; color: #cbd5e1; padding: 2px 0; }
+    .flow-action-item { font-size: 12px; color: #86efac; padding: 2px 0; }
+    .flow-footer { margin-top: 14px; padding-top: 14px; border-top: 1px solid rgba(255,255,255,0.1); }
+    .flow-footer-note { text-align: center; font-size: 11px; color: #64748b; font-style: italic; margin-bottom: 4px; }
+    .flow-footer-step { text-align: center; padding: 10px; font-size: 13px; color: #e2e8f0; background: rgba(37,99,235,0.3); border-radius: 6px; margin: 4px 0; }
+    .flow-footer-step.alert { background: rgba(245,158,11,0.2); color: #fde68a; font-size: 12px; }
+
+    /* === ZAPIER TABLE === */
+    .zapier-table { width: 100%; border-collapse: collapse; margin-top: 16px; font-size: 13px; }
+    .zapier-table tr { border-bottom: 1px solid var(--border); }
+    .zapier-table td { padding: 11px 14px; vertical-align: top; }
+    .zapier-table td:first-child { font-weight: 700; color: white; background: var(--navy); width: 90px; border-radius: 4px; white-space: nowrap; }
+    .zapier-table td:nth-child(2) { color: var(--muted); background: var(--card-bg); }
+
+    /* === TIMELINE === */
+    .timeline { display: flex; flex-direction: column; gap: 18px; margin-top: 24px; }
+    .timeline-phase { border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+    .phase-header { background: var(--navy); color: white; padding: 14px 20px; display: flex; align-items: center; gap: 14px; }
+    .phase-number { width: 32px; height: 32px; min-width: 32px; background: var(--blue); color: white; font-weight: 800; font-size: 15px; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+    .phase-title { font-weight: 700; font-size: 16px; }
+    .phase-days { margin-left: auto; font-size: 12px; color: #94a3b8; white-space: nowrap; }
+    .phase-body { padding: 18px 20px; background: white; }
+    .phase-items { list-style: none; display: flex; flex-direction: column; gap: 8px; }
+    .phase-items li { font-size: 13.5px; padding-left: 20px; position: relative; color: var(--text); line-height: 1.55; }
+    .phase-items li::before { content: '→'; position: absolute; left: 0; color: var(--blue); font-weight: 700; }
+
+    /* === PRICING TABLE === */
+    .pricing-table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 14px; }
+    .pricing-table th { background: var(--navy); color: white; padding: 12px 16px; text-align: left; font-size: 12px; letter-spacing: 0.5px; }
+    .pricing-table th:nth-child(3), .pricing-table th:nth-child(4) { text-align: right; }
+    .pricing-table td { padding: 13px 16px; border-bottom: 1px solid var(--border); vertical-align: top; }
+    .pricing-table td:nth-child(3), .pricing-table td:nth-child(4) { text-align: right; font-weight: 600; white-space: nowrap; }
+    .pricing-table tr:nth-child(even) td { background: var(--card-bg); }
+    .pricing-table .total-row td { background: #eff6ff; font-weight: 700; color: var(--navy); border-top: 2px solid var(--blue); }
+    .pricing-table .discount-row td { background: #fefce8; color: #92400e; }
+    .line-item-title { font-weight: 600; color: var(--navy); margin-bottom: 3px; }
+    .line-item-desc { font-size: 12px; color: var(--muted); line-height: 1.5; }
+
+    /* === PAYMENT === */
+    .payment-note { background: #f0fdf4; border: 1px solid #86efac; border-left: 4px solid var(--green); border-radius: 8px; padding: 16px 20px; margin-top: 20px; font-size: 13.5px; color: #14532d; line-height: 1.7; }
+    .payment-note strong { display: block; font-size: 14px; margin-bottom: 6px; }
+
+    /* === WHY TRUEFLOW === */
+    .why-grid { display: grid; grid-template-columns: repeat(2,1fr); gap: 16px; margin-top: 24px; }
+    .why-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 8px; padding: 18px 20px; }
+    .why-card h3 { font-size: 14px; font-weight: 700; color: var(--navy); margin-bottom: 8px; }
+    .why-card p { font-size: 13px; color: var(--muted); line-height: 1.6; }
+
+    /* === GET STARTED === */
+    .get-started-steps { display: flex; flex-direction: column; gap: 14px; margin-top: 22px; }
+    .get-started-step { display: flex; gap: 16px; align-items: flex-start; }
+    .step-num { width: 32px; height: 32px; min-width: 32px; background: var(--blue); color: white; font-weight: 800; font-size: 14px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-top: 2px; }
+    .step-content { font-size: 14px; line-height: 1.65; flex: 1; }
+    .step-content strong { color: var(--navy); display: block; margin-bottom: 2px; }
+    .valid-through { margin-top: 24px; padding: 14px 20px; background: #eff6ff; border-radius: 8px; font-size: 14px; color: var(--navy); text-align: center; }
+    .contact-block { margin-top: 16px; padding: 16px 20px; background: var(--card-bg); border: 1px solid var(--border); border-radius: 8px; font-size: 14px; text-align: center; }
+    .contact-block a { color: var(--blue); text-decoration: none; }
+
+    /* === SIGNATURE === */
+    .signature-block { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-top: 32px; }
+    .sig-label { font-size: 12px; color: var(--muted); margin-bottom: 8px; }
+    .sig-line { height: 48px; border-bottom: 1px solid var(--border); margin-bottom: 8px; }
+    .sig-date { font-size: 12px; color: var(--muted); }
+
+    /* === APPENDIX === */
+    .appendix-header { background: #0f172a; color: white; padding: 32px 48px; }
+    .appendix-header h2 { font-size: 22px; font-weight: 700; margin-bottom: 6px; }
+    .appendix-header p { font-size: 14px; color: #94a3b8; }
+    .appendix-body { padding: 36px 48px; background: white; border-left: 1px solid var(--border); border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); border-radius: 0 0 12px 12px; }
+    .safeguard-block { margin-bottom: 36px; padding-bottom: 36px; border-bottom: 1px solid var(--border); }
+    .safeguard-block:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+    .safeguard-title { font-size: 18px; font-weight: 700; color: var(--navy); margin-bottom: 16px; }
+    .safeguard-body p { font-size: 14px; line-height: 1.75; margin-bottom: 12px; }
+    .safeguard-body strong { color: var(--navy); }
+    .kill-switch-list { list-style: none; display: flex; flex-direction: column; gap: 8px; margin: 14px 0; }
+    .kill-switch-list li { font-size: 13.5px; padding: 8px 14px; background: #f0fdf4; border-left: 3px solid var(--green); border-radius: 4px; color: #14532d; }
+
+    /* === FOOTER === */
+    .doc-footer { text-align: center; padding: 20px; font-size: 11px; color: var(--muted); line-height: 1.7; }
+
+    /* === PAGE BREAK SYSTEM === */
+    .pb-insert-zone { height: 24px; display: flex; align-items: center; justify-content: center; cursor: pointer; opacity: 0; transition: opacity 0.18s; }
+    .pb-insert-zone:hover { opacity: 1 !important; }
+    .pb-insert-inner { display: flex; align-items: center; gap: 6px; background: #eef2ff; border: 1px dashed #818cf8; border-radius: 20px; padding: 3px 16px; font-size: 11px; color: #4f46e5; font-weight: 700; white-space: nowrap; letter-spacing: 0.4px; pointer-events: none; }
+    .page-break-el { margin: 0; line-height: 0; }
+    .page-break-visual { display: flex; align-items: center; gap: 12px; padding: 8px 0; user-select: none; line-height: 1; }
+    .pb-line { flex: 1; border-top: 2px dashed #a5b4fc; }
+    .pb-badge { display: flex; align-items: center; gap: 8px; background: #eef2ff; border: 1px solid #c7d2fe; border-radius: 20px; padding: 5px 14px; font-size: 10px; font-weight: 700; color: #4338ca; text-transform: uppercase; letter-spacing: 1px; white-space: nowrap; }
+    .pb-remove-btn { background: none; border: none; color: #f87171; cursor: pointer; font-size: 15px; padding: 0 0 0 4px; line-height: 1; font-weight: 700; }
+    .pb-remove-btn:hover { color: #dc2626; }
+    .pb-trigger { display: block; height: 0; overflow: hidden; line-height: 0; font-size: 0; margin: 0; padding: 0; }
+
+    /* === RESPONSIVE === */
+    @media (max-width: 640px) {
+      .cover { padding: 28px 20px; }
+      .cover h1 { font-size: 22px; }
+      .cover-meta { grid-template-columns: 1fr; }
+      .cover-meta-divider { display: none; }
+      .exec-summary, .section { padding: 24px 20px; }
+      .capabilities-grid, .why-grid, .flow-options { grid-template-columns: 1fr; }
+      .signature-block { grid-template-columns: 1fr; }
+      .appendix-header, .appendix-body { padding: 24px 20px; }
+      .toolbar-title { display: none; }
+      .modal-box { max-width: 100%; }
+    }
+
+    /* === PRINT === */
+    @media print {
+      body { background: white; font-size: 13px; }
+      .toolbar, .pb-insert-zone, .page-break-visual, .modal-overlay, .share-banner { display: none !important; }
+      .pb-trigger { display: block !important; break-before: page !important; page-break-before: always !important; height: 0 !important; overflow: hidden !important; margin: 0 !important; padding: 0 !important; line-height: 0 !important; font-size: 0 !important; }
+      .doc-wrapper { margin: 0; padding: 0; max-width: 100%; }
+      .cover { border-radius: 0; }
+      .appendix-body { border-radius: 0; }
+      .section-solution { break-before: page; }
+      .section-architecture { break-before: page; }
+      .section-timeline { break-before: page; }
+      .section-investment { break-before: page; }
+      .section-why { break-before: page; }
+      .section-getstarted { break-before: page; }
+      .section-appendix { break-before: page; }
+      .safeguard-block + .safeguard-block { break-before: page; }
+      .cap-card, .pillar, .platform-item, .why-card, .get-started-step, .signature-block, .contact-block, .valid-through, .flow-option, .zapier-table tr, .pricing-table tr, .phase-items li, .kill-switch-list li { break-inside: avoid; page-break-inside: avoid; }
+      .call-flow, .capabilities-grid, .why-grid, .timeline-phase, .phase-body, .payment-note, .sandbox-box, .clarity-box, .kill-switch-list, .pillars, .platform-stack, .timeline, .get-started-steps { break-inside: auto !important; page-break-inside: auto !important; }
+      p { break-inside: auto !important; page-break-inside: auto !important; orphans: 3 !important; widows: 3 !important; }
+      h2, h3, h4, .section-title, .safeguard-title, .phase-title, .cap-title, .call-flow-title { break-after: avoid !important; page-break-after: avoid !important; }
+      .section, .exec-summary { padding-top: 28px; padding-bottom: 28px; border-left: none; border-right: none; margin-bottom: 0; }
+      [contenteditable]:hover, [contenteditable]:focus { outline: none; }
+      .cover, .phase-header, .appendix-header, .pricing-table th, .pricing-table .total-row td, .pricing-table .discount-row td, .section-number, .phase-number, .step-num, .pillar, .clarity-box, .sandbox-box, .payment-note, .kill-switch-list li, .call-flow, .flow-footer-step, .zapier-table td:first-child { -webkit-print-color-adjust: exact; print-color-adjust: exact; color-adjust: exact; }
+      @page { size: letter portrait; margin: 0.75in; }
+    }
+
+    /* ============================================================
+       GITHUB PAGES SHARING — ADDED
+       ============================================================ */
+    .gh-section-divider {
+      border-top: 1px solid var(--border);
+      padding-top: 18px; margin-top: 4px;
+    }
+    .gh-section-heading {
+      display: flex; align-items: center; gap: 8px; margin-bottom: 8px;
+    }
+    .gh-section-heading span {
+      font-size: 13px; font-weight: 700; color: var(--navy);
+    }
+    .gh-section-desc {
+      font-size: 12px; color: var(--muted); line-height: 1.6; margin-bottom: 12px;
+    }
+    .gh-creds-row {
+      display: flex; align-items: center; gap: 8px;
+      flex-wrap: wrap; margin-bottom: 10px;
+    }
+    .gh-creds-badge {
+      display: inline-flex; align-items: center; gap: 5px;
+      background: #f0fdf4; border: 1px solid #86efac;
+      border-radius: 5px; padding: 3px 10px;
+      font-size: 11.5px; color: var(--green); font-weight: 600;
+    }
+    .gh-creds-badge-none {
+      display: inline-flex; align-items: center; gap: 5px;
+      background: #fefce8; border: 1px solid #fde68a;
+      border-radius: 5px; padding: 3px 10px;
+      font-size: 11.5px; color: #92400e; font-weight: 600;
+    }
+    .btn-gh-upload {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: #24292f; color: white; border: none;
+      padding: 8px 16px; border-radius: 7px;
+      font-size: 12.5px; font-weight: 600; cursor: pointer;
+      transition: background 0.2s; font-family: inherit;
+    }
+    .btn-gh-upload:hover { background: #1c2128; }
+    .gh-status-box {
+      border-radius: 8px; padding: 12px 14px;
+      display: flex; gap: 10px; align-items: flex-start;
+    }
+    .gh-status-loading { background: #eff6ff; border: 1px solid #bfdbfe; }
+    .gh-status-success { background: #f0fdf4; border: 1px solid #86efac; }
+    .gh-status-error   { background: #fef2f2; border: 1px solid #fecaca; }
+    .gh-status-title { font-size: 13px; font-weight: 700; color: var(--navy); margin-bottom: 3px; }
+    .gh-status-sub { font-size: 11.5px; color: var(--muted); line-height: 1.5; }
+    .gh-spinner {
+      width: 16px; height: 16px; flex-shrink: 0; margin-top: 2px;
+      border: 2px solid #bfdbfe; border-top-color: var(--blue);
+      border-radius: 50%; display: inline-block;
+      animation: ghSpin 0.75s linear infinite;
+    }
+    @keyframes ghSpin { to { transform: rotate(360deg); } }
+    .gh-icon-btn {
+      background: none; border: none; color: var(--muted);
+      cursor: pointer; font-size: 14px; padding: 0 0 0 4px;
+      line-height: 1; flex-shrink: 0; transition: color 0.15s;
+    }
+    .gh-icon-btn:hover { color: var(--text); }
+
+
+
+    /* Published page specific styles */
+    .doc-wrapper { 
+      max-width: 900px; 
+      margin: 30px auto; 
+      padding: 0 20px 60px; 
+    }
+    
+    /* Accept Button Styles */
+    .accept-section {
+      margin-top: 32px;
+      text-align: center;
+      padding: 30px;
+      background: linear-gradient(135deg, #f0fdf4 0%, #eff6ff 100%);
+      border: 2px solid #86efac;
+      border-radius: 12px;
+    }
+    .accept-section.accepted {
+      background: linear-gradient(135deg, #eff6ff 0%, #f0fdf4 100%);
+      border-color: #93c5fd;
+    }
+    .accept-section h3 {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--navy);
+      margin-bottom: 16px;
+    }
+    .accepted-info {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+    }
+    .accepted-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: linear-gradient(135deg, #16a34a 0%, #22c55e 100%);
+      color: white;
+      padding: 12px 28px;
+      border-radius: 10px;
+      font-size: 18px;
+      font-weight: 700;
+    }
+    .accepted-date {
+      font-size: 13px;
+      color: var(--muted);
+    }
+    .btn-accept {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      background: linear-gradient(135deg, #16a34a 0%, #15803d 100%);
+      color: white;
+      border: none;
+      padding: 16px 40px;
+      border-radius: 10px;
+      font-size: 18px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 15px rgba(22, 163, 74, 0.3);
+    }
+    .btn-accept:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(22, 163, 74, 0.4);
+    }
+    .btn-accept:active {
+      transform: translateY(0);
+    }
+    
+    /* Success Modal */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.7);
+      backdrop-filter: blur(4px);
+      z-index: 9999;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.3s ease;
+    }
+    .modal-overlay.active {
+      opacity: 1;
+      visibility: visible;
+    }
+    .success-modal {
+      background: white;
+      border-radius: 16px;
+      padding: 40px;
+      max-width: 480px;
+      width: 100%;
+      text-align: center;
+      box-shadow: 0 25px 50px rgba(0, 0, 0, 0.25);
+      transform: scale(0.9);
+      transition: transform 0.3s ease;
+    }
+    .modal-overlay.active .success-modal {
+      transform: scale(1);
+    }
+    .success-icon {
+      width: 80px;
+      height: 80px;
+      background: linear-gradient(135deg, #16a34a 0%, #22c55e 100%);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 24px;
+      font-size: 40px;
+      color: white;
+    }
+    .success-modal h2 {
+      font-size: 24px;
+      font-weight: 800;
+      color: var(--navy);
+      margin-bottom: 16px;
+    }
+    .success-modal p {
+      font-size: 15px;
+      line-height: 1.7;
+      color: var(--text);
+      margin-bottom: 24px;
+    }
+    .success-modal .highlight {
+      background: #f0fdf4;
+      border: 1px solid #86efac;
+      border-radius: 8px;
+      padding: 16px;
+      font-size: 14px;
+      color: #14532d;
+    }
+    .btn-close-modal {
+      margin-top: 24px;
+      background: var(--navy);
+      color: white;
+      border: none;
+      padding: 12px 32px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .btn-close-modal:hover {
+      background: #0f172a;
+    }
+    
+    @media print {
+      body { background: white; }
+      .no-print { display: none !important; }
+      .accept-section { break-inside: avoid; }
+    }
+  </style>
+</head>
+<body>
+  
+<div class="doc-wrapper">
+
+  <!-- COVER -->
+  <div class="cover">
+    <div class="cover-badge" contenteditable="true">Confidential Proposal</div>
+    <h1 contenteditable="true">Transforming How Acme Inc Answers, Engages, and Books</h1>
+    <div class="cover-tagline" contenteditable="true">"A Smarter AI Receptionist Built for Flooring &amp; Restoration Professionals"</div>
+    <div class="cover-meta">
+      <div class="cover-meta-item">
+        <div class="cover-meta-label">Prepared For</div>
+        <div class="cover-meta-value" contenteditable="true">joe schmoe</div>
+      </div>
+      <div class="cover-meta-divider"></div>
+      <div class="cover-meta-item">
+        <div class="cover-meta-label">Prepared By</div>
+        <div class="cover-meta-value" contenteditable="true">Jonathan McComb</div>
+        <div class="cover-meta-sub" contenteditable="true">acme inc</div>
+      </div>
+    </div>
+    <div class="cover-id" contenteditable="true">Proposal ID: TFLOW-2026-MHC-001 &nbsp;·&nbsp; Confidential — For Authorized Recipients Only</div>
+  </div>
+
+  <!-- EXECUTIVE SUMMARY -->
+  <div class="exec-summary">
+    <h2 contenteditable="true">Executive Summary: A Growth Partnership for Acme Inc</h2>
+    <p contenteditable="true">Acme Inc has built a solid reputation in the home services industry as a trusted flooring and repair/restoration provider. Joe, your business runs on relationships — homeowners call you during stressful moments, often needing reassurance, a knowledgeable voice, and a clear path forward. Right now, every missed call, every frustrating AI interaction, and every unanswered website visit represents real revenue walking out the door. In a market where consumers expect instant, professional responses around the clock, the gap between your current phone and web experience and what today's customers expect is costing Acme Inc qualified leads every single day.</p>
+    <p contenteditable="true">We propose replacing your current underperforming AI voice solution and filling the gap on your website with a fully integrated, conversational AI receptionist platform purpose-built for home service businesses like yours. Unlike generic AI tools that fumble customer details and leave callers feeling unheard, our solution is trained to sound natural, capture accurate job information, ask the right qualifying questions, and guide every prospect — whether they call in or visit your website — toward a booked appointment. The result is a seamless front-end customer experience that works 24 hours a day, 7 days a week, without placing that burden on you or your wife.</p>
+    <p contenteditable="true">Our approach for Acme Inc is built on three foundational pillars that ensure this solution delivers measurable impact from day one: Intelligent Engagement, which ensures every caller and web visitor receives a warm, professional, and brand-consistent interaction; Precision Lead Capture, which guarantees that job type, contact details, location, and urgency are accurately recorded and immediately actionable; and Seamless Conversion, which moves qualified prospects directly into your calendar through automated appointment booking — turning interest into confirmed revenue without manual follow-up.</p>
+    <div class="pillars">
+      <div class="pillar" contenteditable="true"><span class="pillar-title">Intelligent Engagement — </span>Every customer interaction — whether by phone or through your website — is handled with warmth, professionalism, and conversational fluency. The AI is trained on the language of flooring and restoration services, so it understands what customers are asking, responds naturally, and builds the kind of trust that makes callers feel confident choosing Acme Inc.</div>
+      <div class="pillar" contenteditable="true"><span class="pillar-title">Precision Lead Capture — </span>Accurate information is the lifeblood of your estimating and scheduling process. Our AI is designed to ask the right questions in the right order — job type, square footage, material preferences, timeline, and contact details — and record every answer cleanly so your team always has what they need to follow up with confidence.</div>
+      <div class="pillar" contenteditable="true"><span class="pillar-title">Seamless Conversion — </span>Capturing a lead is only valuable if it turns into booked work. Our platform is built to move qualified prospects directly from conversation to confirmed appointment, reducing the friction and follow-up time that currently falls on your household to manage. Every lead is nurtured toward a clear next step.</div>
+    </div>
+  </div>
+
+  <!-- SECTION 1: SOLUTION -->
+  <div class="section section-solution">
+    <div class="section-header">
+      <div class="section-number">1</div>
+      <div class="section-title" contenteditable="true">Section 1: The Acme Inc AI Receptionist &amp; Web Engagement Solution</div>
+    </div>
+    <p class="section-intro" contenteditable="true">We are proposing a comprehensive AI-powered front-end communication system that addresses every critical gap currently limiting Acme Inc's ability to capture and convert inbound leads. This is not a one-size-fits-all chatbot or a recycled IVR system — it is a custom-configured, conversational AI platform designed specifically for the workflows, terminology, and customer expectations of a flooring and home restoration business. From the first ring of the phone to the final click on your website, every touchpoint will be handled with the professionalism your brand deserves.</p>
+    <p class="section-intro" contenteditable="true">The platform combines a next-generation AI voice receptionist to replace your current underperforming solution, and a proactive website chat widget that engages visitors, answers common questions, and guides them toward calling or booking an appointment. Together, these two channels create a unified, always-on lead capture and nurturing system that works while you work — and keeps working after hours, on weekends, and during busy project days when the phone simply cannot be the priority.</p>
+
+    <h3 style="font-size:17px;font-weight:700;color:var(--navy);margin-bottom:12px;" contenteditable="true">Core Capabilities</h3>
+    <div class="capabilities-grid">
+      <div class="cap-card">
+        <div class="cap-card-header"><span class="cap-icon">📞</span><span class="cap-title" contenteditable="true">AI Voice Receptionist — Upgraded</span></div>
+        <p class="cap-text" contenteditable="true">Our AI voice receptionist replaces your current solution with a dramatically improved calling experience. It speaks naturally, listens attentively, and responds intelligently to the nuanced questions that flooring and restoration customers ask. Unlike your current system, it does not fumble names, misinterpret job types, or leave callers feeling like they reached a dead end — it delivers a human-quality interaction every single time.</p>
+      </div>
+      <div class="cap-card">
+        <div class="cap-card-header"><span class="cap-icon">💬</span><span class="cap-title" contenteditable="true">Website Chat Widget &amp; Lead Nurturing</span></div>
+        <p class="cap-text" contenteditable="true">A fully branded, proactive chat widget will be deployed on your website to engage visitors before they bounce. The bot greets visitors, answers questions about your flooring and restoration services, and drives them toward a phone call or appointment booking. This turns your website from a passive brochure into an active lead generation tool that works around the clock.</p>
+      </div>
+      <div class="cap-card">
+        <div class="cap-card-header"><span class="cap-icon">📋</span><span class="cap-title" contenteditable="true">Intelligent Lead Qualification</span></div>
+        <p class="cap-text" contenteditable="true">The AI is programmed with a smart qualification script tailored to Acme Inc's specific service offerings — whether it's hardwood installation, tile repair, carpet restoration, or water damage recovery. It asks the right follow-up questions to understand scope, urgency, and budget fit, ensuring every lead passed to you is worth your time and energy to pursue.</p>
+      </div>
+      <div class="cap-card">
+        <div class="cap-card-header"><span class="cap-icon">📅</span><span class="cap-title" contenteditable="true">Automated Appointment Booking</span></div>
+        <p class="cap-text" contenteditable="true">Qualified leads are guided directly into your scheduling calendar without any manual intervention required. The AI checks availability in real time and confirms appointments on the spot, eliminating the back-and-forth phone tag that wastes time for both your team and your customers. Every booking comes with an automatic confirmation sent to the customer.</p>
+      </div>
+      <div class="cap-card">
+        <div class="cap-card-header"><span class="cap-icon">🎯</span><span class="cap-title" contenteditable="true">Accurate Information Capture &amp; CRM Logging</span></div>
+        <p class="cap-text" contenteditable="true">One of the core failures of your current AI solution is inaccurate data capture — names get garbled, addresses are wrong, job descriptions are vague. Our platform is engineered for precision, using structured conversation flows and confirmation loops to verify critical details before ending the call or chat session. Every lead is logged cleanly and completely for immediate follow-up.</p>
+      </div>
+      <div class="cap-card">
+        <div class="cap-card-header"><span class="cap-icon">🤝</span><span class="cap-title" contenteditable="true">Rapport Building &amp; Brand Voice Customization</span></div>
+        <p class="cap-text" contenteditable="true">The AI is not just functional — it is warm, conversational, and brand-aligned. We customize the tone, personality, and scripting to reflect the trusted, local character of Acme Inc. Customers will feel heard, valued, and confident in their decision to choose you, which directly increases conversion rates and reduces the likelihood of them calling a competitor while they wait.</p>
+      </div>
+      <div class="cap-card">
+        <div class="cap-card-header"><span class="cap-icon">🔄</span><span class="cap-title" contenteditable="true">After-Hours &amp; Overflow Call Handling</span></div>
+        <p class="cap-text" contenteditable="true">Missed calls are missed revenue — full stop. Our solution answers every call, at any hour, with the same quality and professionalism as a live receptionist during business hours. Whether a homeowner calls at 9 PM after discovering damaged flooring or during a busy job day when nobody can pick up, Acme Inc will never miss an opportunity to capture that lead again.</p>
+      </div>
+      <div class="cap-card">
+        <div class="cap-card-header"><span class="cap-icon">📊</span><span class="cap-title" contenteditable="true">Performance Reporting &amp; Lead Insights</span></div>
+        <p class="cap-text" contenteditable="true">You will have access to a dashboard that provides visibility into call volume, chat engagement, lead quality, booking rates, and more. These insights help you understand where your leads are coming from, how the AI is performing, and where additional opportunities exist. Data-driven visibility empowers smarter business decisions over time.</p>
+      </div>
+    </div>
+
+    <div class="clarity-box">
+      <h3 contenteditable="true">Important Note: What This Solution Replaces &amp; Solves</h3>
+      <p contenteditable="true">This proposal directly addresses four critical business problems Acme Inc is currently experiencing: (1) Missed calls resulting in lost project revenue when no one is available to answer. (2) A poor caller experience with your current AI provider that fails to accurately capture lead information or build any rapport with prospective customers. (3) No web chat presence to engage and convert website visitors who are actively researching flooring and restoration services. (4) An over-reliance on manual phone handling that places unnecessary burden on your household. This solution is designed to solve all four simultaneously.</p>
+    </div>
+  </div>
+
+  <!-- SECTION 2: ARCHITECTURE -->
+  <div class="section section-architecture">
+    <div class="section-header">
+      <div class="section-number">2</div>
+      <div class="section-title" contenteditable="true">Section 2: Technical Architecture &amp; Integration Overview</div>
+    </div>
+    <p class="section-intro" contenteditable="true">The Acme Inc AI Receptionist platform is built on a robust, cloud-based infrastructure designed for reliability, scalability, and seamless integration with the tools your business already uses. The voice AI component integrates directly with your existing business phone number — no new number required — using intelligent call routing to ensure the AI handles inbound calls with zero disruption to your current setup. The website chat widget is a lightweight embed code that can be added to any website platform, including WordPress, Wix, Squarespace, or custom HTML sites, typically in under 15 minutes. Both the voice and chat channels feed into a unified lead management dashboard where all contact records, transcripts, and appointment confirmations are stored and organized. If Acme Inc uses a CRM or scheduling platform, we will configure a direct integration during the setup phase so that every captured lead flows automatically into your existing workflow without any double-entry or manual processing. The entire system is hosted on enterprise-grade cloud infrastructure with 99.9% uptime guarantees, end-to-end encryption for all customer data, and automated backups to ensure business continuity at all times.</p>
+
+    <h3 style="font-size:16px;font-weight:700;color:var(--navy);margin-bottom:12px;" contenteditable="true">Platform Stack Overview</h3>
+    <div class="platform-stack">
+      <div class="platform-item" contenteditable="true"><strong>ServiceTitan CRM</strong> remains the system of record for all booking requests; nothing about that changes.</div>
+      <div class="platform-item" contenteditable="true"><strong>Clarity VoIP</strong> handles call routing, and the two architecture options differ in when and how the AI enters the call path. Under <strong>Option A (AI as Backup to Human)</strong>, calls arrive via the ServiceTitan tracking number, pass through the Clarity main number to a live human receptionist during business hours, and reach the AI only on overflow; after hours, the Clarity main number routes directly to the AI. Under <strong>Option B (AI Takes All Calls First)</strong>, calls from the ServiceTitan tracking number route directly to the AI receptionist number at all hours, and the AI can forward to live staff as needed.</div>
+      <div class="platform-item" contenteditable="true"><strong>Zapier Middleware</strong> is the secure data bridge, operated within TrueFlow's managed Zapier environment and authenticated via a ServiceTitan Zapier App Registration using a dedicated <strong>Client ID and Client Secret (OAuth 2.0)</strong> that you generate directly within your ServiceTitan developer settings. You retain full and independent authority to revoke that access at any time.</div>
+    </div>
+
+    <div class="sandbox-box">
+      <h3 contenteditable="true">ServiceTitan Integration &amp; Sandbox Testing</h3>
+      <p contenteditable="true">Where your ServiceTitan account includes sandbox access, all integration testing will be conducted in your sandbox environment first. This allows us to validate that booking requests are populating correctly before any real customer data is ever touched. Once sandbox testing is confirmed successful, the integration is pointed to your live production environment. Read access to the sandbox account will be needed during this phase to verify that entries are being created accurately. If sandbox access is not available on your current plan, testing will be conducted using clearly labeled test booking entries that are cleaned up before go-live.</p>
+    </div>
+
+    <div class="call-flow">
+      <div class="call-flow-title" contenteditable="true">End-to-End Call Flow</div>
+      <div class="call-flow-entry" contenteditable="true">📞 All Inbound Calls — Caller Dials ServiceTitan Tracking Number</div>
+      <div class="flow-arrow">↓</div>
+      <div class="call-flow-entry" style="font-size:12px;background:rgba(255,255,255,0.04);color:#94a3b8;font-weight:400;" contenteditable="true">Route is determined by the chosen architecture option</div>
+      <div class="flow-arrow">↓</div>
+      <div class="flow-options">
+        <div class="flow-option">
+          <h4 contenteditable="true">Option A — AI as Backup to Human</h4>
+          <div class="flow-time" contenteditable="true">☀️ Business Hours</div>
+          <div class="flow-step" contenteditable="true">ST # → Clarity Main # → Human Receptionist</div>
+          <div class="flow-step" style="color:#94a3b8;font-style:italic;" contenteditable="true">↓ lines full / overflow</div>
+          <div class="flow-step" contenteditable="true">AI Receptionist</div>
+          <div style="margin-top:6px;">
+            <div class="flow-action-item" contenteditable="true">✅ Create Booking Request</div>
+            <div class="flow-action-item" contenteditable="true">📅 Schedule a Call-Back</div>
+            <div class="flow-action-item" contenteditable="true">👤 Forward to Specific Rep's #</div>
+            <div class="flow-action-item" contenteditable="true">📋 Forward to Human Call-Queue</div>
+          </div>
+          <div class="flow-time" contenteditable="true">🌙 After Hours</div>
+          <div class="flow-step" contenteditable="true">ST # → Clarity Main # → AI Receptionist #</div>
+          <div style="margin-top:6px;">
+            <div class="flow-action-item" contenteditable="true">✅ Create Booking Request</div>
+            <div class="flow-action-item" contenteditable="true">📅 Schedule a Call-Back</div>
+          </div>
+        </div>
+        <div class="flow-option">
+          <h4 contenteditable="true">Option B — AI Takes All Calls First</h4>
+          <div class="flow-time" contenteditable="true">☀️ Business Hours</div>
+          <div class="flow-step" contenteditable="true">ST # → AI Receptionist #</div>
+          <div style="margin-top:6px;">
+            <div class="flow-action-item" contenteditable="true">✅ Create Booking Request</div>
+            <div class="flow-action-item" contenteditable="true">📅 Schedule a Call-Back</div>
+            <div class="flow-action-item" contenteditable="true">👤 Forward to Specific Rep's #</div>
+            <div class="flow-action-item" contenteditable="true">📋 Forward to Clarity # Call Queue</div>
+          </div>
+          <div class="flow-time" contenteditable="true">🌙 After Hours</div>
+          <div class="flow-step" contenteditable="true">ST # → AI Receptionist #</div>
+          <div style="margin-top:6px;">
+            <div class="flow-action-item" contenteditable="true">✅ Create Booking Request</div>
+            <div class="flow-action-item" contenteditable="true">📅 Schedule a Call-Back</div>
+          </div>
+        </div>
+      </div>
+      <div class="flow-footer">
+        <div class="flow-footer-note" contenteditable="true">Booking and call-back actions trigger the Zapier data layer — call-forwarding actions route in real time via Clarity VoIP</div>
+        <div class="flow-arrow">↓</div>
+        <div class="flow-footer-step" contenteditable="true">Zapier Middleware — TrueFlow Managed · ServiceTitan App Registration<br><span style="font-size:11px;color:#93c5fd;">(Authenticated via Client ID + Client Secret · OAuth 2.0 · Generated in Your ST Developer Settings)</span></div>
+        <div class="flow-arrow">↓</div>
+        <div class="flow-footer-step" contenteditable="true">ServiceTitan — Booking Request Created</div>
+        <div class="flow-arrow">↓</div>
+        <div class="flow-footer-step alert" contenteditable="true">⚡ Real-Time Alert Fired → Email Notification or Google Chat Message<br><span style="font-size:11px;">Includes: Name · Phone · ZIP · Service Type · Action Taken · Preferred Windows</span></div>
+      </div>
+    </div>
+
+    <h3 style="font-size:16px;font-weight:700;color:var(--navy);margin:28px 0 12px;" contenteditable="true">Zapier Middleware: Detailed Workflow Logic</h3>
+    <p style="font-size:14px;line-height:1.75;margin-bottom:16px;" contenteditable="true">The Zapier layer operates on a structured trigger-filter-action pattern and is managed entirely within TrueFlow's Zapier environment on your behalf. The ServiceTitan Zapier App Registration is created directly from within your ServiceTitan Developer Settings portal, meaning the OAuth credentials are generated and owned by your organization. Because you are the originating source of those credentials, you hold unconditional revocation authority independent of any action by TrueFlow. The Zap scope is restricted to booking request creation only; the integration has no read or write access to existing customer records, invoices, or any other ServiceTitan data. The detailed step-by-step logic is documented in full in Appendix Safeguard 3.</p>
+    <table class="zapier-table">
+      <tbody><tr><td>TRIGGER</td><td contenteditable="true">AI interaction completes (any path, any architecture option) → Full data package sent to Zapier webhook (name, phone, ZIP, service type, preferred windows, action taken: [Booking / CallBack / Transferred / Out-of-Area], timestamp)</td></tr>
+      <tr><td>FILTER 1</td><td contenteditable="true">Is caller ZIP in confirmed service territory? <strong>NO</strong> → Skip ServiceTitan record creation; real-time notification still fires (flag: "Out-of-Area Inquiry — No Booking Created")</td></tr>
+      <tr><td>FILTER 2</td><td contenteditable="true">Is action = Booking Request AND data complete? <strong>YES</strong> → BOOKING REQUEST (Action A, flag: "Standard Booking")</td></tr>
+      <tr><td>FILTER 3</td><td contenteditable="true">Is action = Schedule Call-Back? <strong>YES</strong> → BOOKING REQUEST (Action A, flag: "Call-Back Requested", preferred callback window included)</td></tr>
+      <tr><td>FILTER 4</td><td contenteditable="true">Was call transferred to live agent? <strong>YES</strong> → BOOKING REQUEST (Action A, flag: "Transferred — Context Attached", all collected data included)</td></tr>
+      <tr><td>ACTION A</td><td contenteditable="true">BOOKING REQUEST: Create ServiceTitan Booking Request, all fields populated (name, address, service type, preferred windows, action flag, source: AI Receptionist)</td></tr>
+      <tr><td>ACTION B</td><td contenteditable="true">Regardless of path → Fire real-time notification to Email + Google Chat with full booking summary (name, phone, ZIP, service, action taken, preferred windows)</td></tr>
+      <tr><td>LOGGING</td><td contenteditable="true">All Zap runs stored in Zapier run history for 30 days with full input/output visibility — auditable at any time</td></tr>
+    </tbody></table>
+  </div>
+
+  <!-- SECTION 3: TIMELINE -->
+  <div class="section section-timeline">
+    <div class="section-header">
+      <div class="section-number">3</div>
+      <div class="section-title" contenteditable="true">Section 3: Implementation Timeline</div>
+    </div>
+    <p class="section-intro" contenteditable="true">From signed agreement to fully operational system, Acme Inc can expect the complete platform to be live within 3 to 4 weeks. Our implementation process is structured, collaborative, and designed to require minimal time commitment from you. Each phase has clear deliverables and milestones so you always know exactly where things stand. Here is what the rollout looks like:</p>
+    <div class="timeline">
+      <div class="timeline-phase">
+        <div class="phase-header">
+          <div class="phase-number">1</div>
+          <div class="phase-title" contenteditable="true">Discovery &amp; Strategy</div>
+          <div class="phase-days" contenteditable="true">Days 1–5</div>
+        </div>
+        <div class="phase-body">
+          <ul class="phase-items">            <li contenteditable="true">Kickoff call with Joe to review services, ideal customer profile, and call handling preferences</li>
+            <li contenteditable="true">Audit of current AI voice provider pain points and failure patterns</li>
+            <li contenteditable="true">Review of website structure and visitor flow to plan chat widget placement</li>
+            <li contenteditable="true">Documentation of all service offerings, pricing tiers, and booking requirements</li>
+            <li contenteditable="true">Finalization of qualification script and lead capture fields specific to flooring and restoration jobs</li></ul>
+        </div>
+      </div>
+      <div class="timeline-phase">
+        <div class="phase-header">
+          <div class="phase-number">2</div>
+          <div class="phase-title" contenteditable="true">Build &amp; Configuration</div>
+          <div class="phase-days" contenteditable="true">Days 6–14</div>
+        </div>
+        <div class="phase-body">
+          <ul class="phase-items">            <li contenteditable="true">Custom AI voice persona development — tone, language, and brand voice aligned to Acme Inc</li>
+            <li contenteditable="true">Full conversation flow scripting for inbound calls including greetings, qualification, objection handling, and booking</li>
+            <li contenteditable="true">Website chat widget design, branding, and conversation flow build-out</li>
+            <li contenteditable="true">Integration setup with your scheduling calendar and/or CRM platform</li>
+            <li contenteditable="true">After-hours handling protocols and escalation rules configured</li></ul>
+        </div>
+      </div>
+      <div class="timeline-phase">
+        <div class="phase-header">
+          <div class="phase-number">3</div>
+          <div class="phase-title" contenteditable="true">Testing &amp; Quality Assurance</div>
+          <div class="phase-days" contenteditable="true">Days 15–21</div>
+        </div>
+        <div class="phase-body">
+          <ul class="phase-items">            <li contenteditable="true">Internal testing of all voice call scenarios including common flooring and restoration inquiries</li>
+            <li contenteditable="true">Chat widget testing across desktop and mobile browsers</li>
+            <li contenteditable="true">Lead capture accuracy validation — ensuring names, addresses, and job details are captured correctly</li>
+            <li contenteditable="true">Appointment booking flow tested end-to-end from initial contact to confirmed calendar entry</li>
+            <li contenteditable="true">Joe and team review session with opportunity for feedback and adjustments before go-live</li></ul>
+        </div>
+      </div>
+      <div class="timeline-phase">
+        <div class="phase-header">
+          <div class="phase-number">4</div>
+          <div class="phase-title" contenteditable="true">Launch &amp; Optimization</div>
+          <div class="phase-days" contenteditable="true">Days 22–28</div>
+        </div>
+        <div class="phase-body">
+          <ul class="phase-items">            <li contenteditable="true">Full platform go-live with voice and web chat active simultaneously</li>
+            <li contenteditable="true">Real-time monitoring during initial launch window to catch any edge cases</li>
+            <li contenteditable="true">Performance baseline established — call volume, chat engagement, lead capture rate, booking conversion</li>
+            <li contenteditable="true">30-day post-launch optimization review call with Joe to fine-tune scripts and flows based on real-world data</li>
+            <li contenteditable="true">Ongoing monthly support and performance reporting begins</li></ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SECTION 4: INVESTMENT -->
+  <div class="section section-investment">
+    <div class="section-header">
+      <div class="section-number">4</div>
+      <div class="section-title" contenteditable="true">Section 4: Investment Summary</div>
+    </div>
+    <p class="section-intro" contenteditable="true">The Acme Inc AI Receptionist and Web Engagement Platform represents a straightforward, transparent investment with no hidden fees or surprise charges. The one-time setup fee covers the full discovery, build, configuration, testing, and launch of both the AI voice receptionist and the website chat widget — everything described in this proposal, delivered in 3 to 4 weeks. The ongoing monthly fee covers platform hosting, continuous AI model maintenance, performance monitoring, monthly reporting, and dedicated support so that your system stays sharp and effective as your business grows. When you consider that a single recovered flooring or restoration project can easily generate $2,000 to $10,000 or more in revenue, this investment pays for itself with the very first lead it captures that would have otherwise been lost to a missed call or an unengaged website visitor.</p>
+    <table class="pricing-table">
+      <thead>
+        <tr>
+          <th contenteditable="true">Line Item</th>
+          <th contenteditable="true">Description</th>
+          <th contenteditable="true">One-Time Fee</th>
+          <th contenteditable="true">Monthly Fee</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><div class="line-item-title" contenteditable="true">AI Voice Assistant Build</div></td>
+          <td><div class="line-item-desc" contenteditable="true">Knowledge base training, trust-first persona scripting, full conversation flow design for chosen architecture option (business hours and after-hours paths), ZIP validation logic, booking intake and call-back scheduling architecture</div></td>
+          <td contenteditable="true">$879</td>
+          <td contenteditable="true">—</td>
+        </tr>
+        <tr>
+          <td><div class="line-item-title" contenteditable="true">ServiceTitan Integration</div></td>
+          <td><div class="line-item-desc" contenteditable="true">ServiceTitan Zapier App Registration setup (Client ID / Client Secret), Clarity VoIP routing configuration per confirmed architecture option, complete Zapier workflow build and field mapping within TrueFlow's managed environment, sandbox validation testing</div></td>
+          <td contenteditable="true">$229</td>
+          <td contenteditable="true">—</td>
+        </tr>
+        <tr class="total-row">
+          <td contenteditable="true"><strong>Setup Fee Total</strong></td>
+          <td><div class="line-item-desc" contenteditable="true">Due in full at contract signing · Covers complete build through supervised go-live</div></td>
+          <td contenteditable="true"><span style="font-weight: normal;">$1,108</span></td>
+          <td contenteditable="true">—</td>
+        </tr>
+        <tr>
+          <td><div class="line-item-title" contenteditable="true">Managed Service</div></td>
+          <td><div class="line-item-desc" contenteditable="true">Active system monitoring, weekly performance reports, ongoing prompt refinement, Zapier workflow maintenance within TrueFlow's managed environment, and priority support response</div></td>
+          <td contenteditable="true">—</td>
+          <td contenteditable="true"><strong>$429 / mo</strong></td>
+        </tr>
+        <tr>
+          <td><div class="line-item-title" contenteditable="true">Voice AI Usage (Pass-Through)</div></td>
+          <td><div class="line-item-desc" contenteditable="true">Billed at actual cost based on call volume and duration. Estimated at ~40 AI-handled calls/week × 4.33 weeks × 2 min avg. × avg $0.25/min (~346 min/month). Your actual usage will vary and is invoiced at cost with no markup.</div></td>
+          <td contenteditable="true">—</td>
+          <td contenteditable="true">~$87 / mo est.</td>
+        </tr>
+        <tr class="discount-row">
+          <td contenteditable="true"><strong>🎉 Founder's Discount</strong></td>
+          <td><div class="line-item-desc" contenteditable="true">35% off Setup fee if signed by 4/8/2026. + Setup month's prorated monthly management fee waived.</div></td>
+          <td contenteditable="true"><strong>$720.20</strong></td>
+          <td contenteditable="true">~$516 est.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="payment-note">
+      <strong contenteditable="true">💡 Payment Schedule</strong>
+      <span contenteditable="true">The one-time setup fee of $1,000 is due upon signing of this agreement and initiates the project immediately. The monthly recurring fee of $500 per month begins on the date the platform goes live and is billed on the same date each month thereafter. There are no long-term contracts — Acme Inc may cancel with 30 days written notice at any time after the first 90 days of service.</span>
+      <br><br>
+      <em style="font-size:12px;" contenteditable="true">* All pricing is in USD. Usage estimates are based on approximately 40 AI-handled calls per week and are approximations only; actual usage may vary. No long-term contract required after the initial setup period.</em>
+    </div>
+  </div>
+
+  <!-- WHY TRUEFLOW -->
+  <div class="section section-why">
+    <div class="section-header">
+      <div class="section-number" style="background:var(--blue);">★</div>
+      <div class="section-title" contenteditable="true">Why Acme Inc Should Choose This Solution Over the Alternatives</div>
+    </div>
+    <p class="section-intro" contenteditable="true">Joe, you have already experienced firsthand what a poor AI voice solution looks and feels like — and you know the cost it carries in lost leads, frustrated callers, and the daily burden it places on your household to compensate for its shortfalls. Here is why this solution is categorically different, and why it is the right investment for Acme Inc right now:</p>
+    <div class="why-grid">
+      <div class="why-card">
+        <h3 contenteditable="true">🏠 Built for Home Services, Not Generic Business</h3>
+        <p contenteditable="true">This is not a generic AI receptionist repurposed for your industry. The conversation flows, qualification scripts, and lead capture fields are built from the ground up with flooring and home restoration customers in mind. The AI understands the difference between a hardwood refinish and a subfloor replacement, and it asks the right questions accordingly.</p>
+      </div>
+      <div class="why-card">
+        <h3 contenteditable="true">🎙️ Rapport-First Conversation Design</h3>
+        <p contenteditable="true">Your current AI fails because it treats callers like data entry subjects rather than stressed homeowners who need reassurance. Our platform is engineered to lead with empathy, build trust through natural dialogue, and make every caller feel like they reached a professional, caring company — which is exactly what Acme Inc is.</p>
+      </div>
+      <div class="why-card">
+        <h3 contenteditable="true">🔗 Unified Voice + Web in One Platform</h3>
+        <p contenteditable="true">Most providers address either phone or web — rarely both, and almost never in an integrated way. Our solution handles inbound calls AND website visitors under one roof, giving Acme Inc a complete front-end communication system that eliminates the gaps where leads currently fall through.</p>
+      </div>
+      <div class="why-card">
+        <h3 contenteditable="true">📈 Measurable ROI from Day One</h3>
+        <p contenteditable="true">Every call answered, every lead captured, every appointment booked is tracked and reported. You will have clear, concrete data showing the platform's impact on your business within the first 30 days. This is not a set-it-and-forget-it expense — it is a revenue-generating asset with visible, verifiable results.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- GET STARTED -->
+  <div class="section section-getstarted">
+    <div class="section-header">
+      <div class="section-number" style="background:var(--green);font-size:18px;">→</div>
+      <div class="section-title" contenteditable="true">How to Get Started</div>
+    </div>
+    <p class="section-intro" contenteditable="true">Getting Acme Inc up and running with a world-class AI receptionist experience is simple and fast. Here are the five steps that take us from proposal acceptance to a fully live system — all within 3 to 4 weeks:</p>
+    <div class="get-started-steps">
+      <div class="get-started-step">
+        <div class="step-num">1</div>
+        <div class="step-content"><strong contenteditable="true">Step 1: Review &amp; Accept This Proposal</strong><span contenteditable="true">Take the time you need to review every detail of this proposal. If you have any questions, adjustments, or want to talk through any component before signing, we are available for a no-pressure call at your convenience. Once you are ready, simply sign the agreement to officially kick off the engagement.</span></div>
+      </div>
+      <div class="get-started-step">
+        <div class="step-num">2</div>
+        <div class="step-content"><strong contenteditable="true">Step 2: Submit Setup Fee &amp; Complete Onboarding Form</strong><span contenteditable="true">Upon signing, a brief onboarding form will be sent to Joe to collect key business details — services offered, hours of operation, geographic service area, current scheduling tool, and any specific instructions for how calls and leads should be handled. This typically takes 15 to 20 minutes to complete and gives us everything we need to begin the build.</span></div>
+      </div>
+      <div class="get-started-step">
+        <div class="step-num">3</div>
+        <div class="step-content"><strong contenteditable="true">Step 3: Attend the Kickoff Discovery Call</strong><span contenteditable="true">Within the first week, we will schedule a dedicated 60-minute discovery call with Joe to go deeper on your customer profile, common call scenarios, lead qualification priorities, and brand voice preferences. This is where we align on what great looks like for Acme Inc, and it directly shapes how the AI is trained and scripted.</span></div>
+      </div>
+      <div class="get-started-step">
+        <div class="step-num">4</div>
+        <div class="step-content"><strong contenteditable="true">Step 4: Review &amp; Approve Before Launch</strong><span contenteditable="true">Before anything goes live, you will have the opportunity to experience the AI firsthand — both the voice receptionist and the website chat widget — in a test environment. We will walk through realistic call scenarios together, and you will have full opportunity to request changes, adjustments, or refinements until the experience meets your standard.</span></div>
+      </div>
+      <div class="get-started-step">
+        <div class="step-num">5</div>
+        <div class="step-content"><strong contenteditable="true">Step 5: Go Live &amp; Start Capturing Every Lead</strong><span contenteditable="true">With your approval, we flip the switch and Acme Inc's new AI receptionist goes live. From that moment forward, every inbound call is answered professionally, every website visitor is engaged, every lead is captured accurately, and every qualified prospect is guided toward a booked appointment — 24 hours a day, 7 days a week.</span></div>
+      </div>
+    </div>
+
+    <div class="valid-through" contenteditable="true">This proposal is valid through <strong>May 3, 2026</strong>.</div>
+    <div class="contact-block">
+      <strong contenteditable="true">Questions before signing? Contact TrueFlow Business Automations:</strong><br>
+      <span contenteditable="true"><a href="mailto:jonathan@tflow-automations.com">jonathan@tflow-automations.com</a> &nbsp;·&nbsp; (678) 235-4818</span>
+    </div>
+
+    <h3 style="font-size:16px;font-weight:700;color:var(--navy);margin:32px 0 16px;" contenteditable="true">Client Acceptance</h3>
+    <div class="signature-block" id="signatureBlock">
+      <div id="sigPartyClient">
+        <div class="sig-label" contenteditable="true">Signature — David Thompson, Mr. Handyman of Canton / Woodstock / Marietta</div>
+        <div class="sig-line" id="clientSigLine"></div>
+        <div class="sig-date" id="clientSigDate" contenteditable="true">Date: ___________________________</div>
+      </div>
+      <div>
+        <div class="sig-label" contenteditable="true">TrueFlow AI Solutions — Authorized Representative</div>
+        <div class="sig-line"></div>
+        <div class="sig-date" contenteditable="true">Date: ___________________________</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- APPENDIX -->
+  <div class="section-appendix">
+    <div class="appendix-header">
+      <h2 contenteditable="true">Appendix: Operational Safeguards &amp; Architecture Detail</h2>
+      <p contenteditable="true">Three independent controls, because you should never feel locked into any system, at any time.</p>
+    </div>
+    <div class="appendix-body">
+
+      <div class="safeguard-block">
+        <div class="safeguard-title" contenteditable="true">🔴 Safeguard 1 — The Phone Kill-Switch</div>
+        <div class="safeguard-body">
+          <p contenteditable="true">The AI receptionist intercepts calls through call forwarding rules within your Clarity VoIP configuration and, depending on the chosen architecture, your ServiceTitan tracking number routing. Your primary Mr. Handyman business number never changes, is never ported, and is never dependent on TrueFlow infrastructure. The AI answers calls only because a routing rule has been configured to direct them there, and every one of those rules is a single toggle that you control independently.</p>
+          <p contenteditable="true"><strong>Option A — AI as Backup to Human:</strong> The AI is active in two distinct windows. During business hours it activates only on overflow from the human receptionist; after hours it is the primary handler via the Clarity main number. To kill business-hours AI coverage, log into the Clarity VoIP admin panel and disable the overflow forwarding rule that routes to the AI endpoint. To kill after-hours AI coverage, update the after-hours forwarding rule in Clarity VoIP to point to voicemail or an after-hours message instead of the AI number. Each change takes fewer than 60 seconds and takes effect on the very next inbound call.</p>
+          <p contenteditable="true"><strong>Option B — AI Takes All Calls First:</strong> The ServiceTitan tracking number routes directly to the AI receptionist number at all hours. To disable AI answering entirely, update the forwarding destination of that tracking number within ServiceTitan — or update the corresponding Clarity routing rule — to point directly to the Clarity main number or voicemail. This takes fewer than 60 seconds and takes effect immediately on the next inbound call.</p>
+          <ul class="kill-switch-list">
+            <li contenteditable="true">Zero impact on ServiceTitan CRM — no records are altered, deleted, or locked</li>
+            <li contenteditable="true">Zero impact on Zapier workflows — they simply stop receiving trigger data and go dormant</li>
+            <li contenteditable="true">Callers experience no outage, no error message, and no disruption to service</li>
+            <li contenteditable="true">All routing rules can be re-enabled instantly at any time without any reconfiguration</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="safeguard-block">
+        <div class="safeguard-title" contenteditable="true">🔵 Safeguard 2 — The API Kill-Switch</div>
+        <div class="safeguard-body">
+          <p contenteditable="true">The integration between TrueFlow's managed Zapier environment and ServiceTitan is authenticated via a <strong>Zapier App Registration</strong> that you create directly within your own ServiceTitan Developer Settings portal. This registration generates a dedicated <strong>Client ID and Client Secret</strong> using the OAuth 2.0 protocol. These credentials are the only authorized pathway for Zapier to write data into ServiceTitan. Credentials are maintained on file by TrueFlow as part of the active service engagement to support ongoing build and automation work. Because you are the originating source of these credentials within your own ServiceTitan instance, you hold unconditional revocation authority independent of any action by TrueFlow.</p>
+          <p contenteditable="true"><strong>To disable all Zapier-to-ServiceTitan activity:</strong> Navigate to ServiceTitan → Settings → Developer → App Registrations → locate the TrueFlow Zapier registration → click Revoke or Rotate the Client Secret. This action takes effect in real time, immediately and permanently invalidating all Zapier authentication attempts. Zero ServiceTitan data is modified or deleted by this action.</p>
+          <ul class="kill-switch-list">
+            <li contenteditable="true">Revocation is instantaneous — no propagation delay, no grace period</li>
+            <li contenteditable="true">All existing ServiceTitan booking records and customer data are completely unaffected</li>
+            <li contenteditable="true">API scope is limited strictly to booking request creation only — no access to existing records, invoices, dispatching, or any other ST module</li>
+            <li contenteditable="true">A new Client Secret can be issued at any time to re-establish the integration with zero reconfiguration of conversation flows or AI logic</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="safeguard-block">
+        <div class="safeguard-title" contenteditable="true">⚙️ Safeguard 3 — Zapier Middleware: Complete Architecture Breakdown</div>
+        <div class="safeguard-body">
+          <p contenteditable="true">The Zapier layer is the connective tissue between the AI receptionist and ServiceTitan. Note that call-forwarding actions (forward to specific rep's number, forward to call queue) are executed in real time via Clarity VoIP during the live call; the Zapier layer captures the interaction data simultaneously and creates the appropriate ServiceTitan Booking Request regardless of which routing outcome occurred. All outcomes — standard bookings, call-back scheduling requests, and transferred calls — are recorded as Booking Requests differentiated by an action flag. Below is an example step-by-step logic of the middleware workflow designed for your needs:</p>
+          <table class="zapier-table">
+            <tbody><tr><td>TRIGGER</td><td contenteditable="true">AI interaction completes (any path, any architecture option) → Full data package sent to Zapier webhook (name, phone, ZIP, service type, preferred windows, action taken: [Booking / CallBack / Transferred / Out-of-Area], timestamp)</td></tr>
+            <tr><td>FILTER 1</td><td contenteditable="true">Is caller ZIP in confirmed service territory? <strong>NO</strong> → Skip ServiceTitan record creation; real-time notification still fires (flag: "Out-of-Area Inquiry — No Booking Created")</td></tr>
+            <tr><td>FILTER 2</td><td contenteditable="true">Is action = Booking Request AND data complete? <strong>YES</strong> → BOOKING REQUEST (Action A, flag: "Standard Booking")</td></tr>
+            <tr><td>FILTER 3</td><td contenteditable="true">Is action = Schedule Call-Back? <strong>YES</strong> → BOOKING REQUEST (Action A, flag: "Call-Back Requested", preferred callback window included)</td></tr>
+            <tr><td>FILTER 4</td><td contenteditable="true">Was call transferred to live agent? <strong>YES</strong> → BOOKING REQUEST (Action A, flag: "Transferred — Context Attached", all collected data included)</td></tr>
+            <tr><td>ACTION A</td><td contenteditable="true">BOOKING REQUEST: Create ServiceTitan Booking Request, all fields populated (name, address, service type, preferred windows, action flag, source: AI Receptionist)</td></tr>
+            <tr><td>ACTION B</td><td contenteditable="true">Regardless of path → Fire real-time notification to Email + Google Chat with full booking summary (name, phone, ZIP, service, action taken, preferred windows)</td></tr>
+            <tr><td>LOGGING</td><td contenteditable="true">All Zap runs stored in Zapier run history for 30 days with full input/output visibility — auditable at any time</td></tr>
+          </tbody></table>
+          <p style="margin-top:14px;font-size:13px;color:var(--muted);" contenteditable="true">All Zaps are built and maintained within TrueFlow's managed Zapier account as part of the active service engagement.</p>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="doc-footer" contenteditable="true">
+    TrueFlow Business Automations&nbsp; ·&nbsp; Proposal ID: TFLOW-2026-MHC-001 &nbsp;·&nbsp;
+    Prepared exclusively for Mr. Handyman of Canton / Woodstock / Marietta &nbsp;·&nbsp;
+    Confidential &amp; Proprietary &nbsp;·&nbsp; Valid through April 30, 2026
+  </div>
+
+
+</div>
+  
+  <!-- Success Modal -->
+  <div class="modal-overlay" id="successModal">
+    <div class="success-modal">
+      <div class="success-icon">✓</div>
+      <h2>Excellent!</h2>
+      <p>We've received your approval.</p>
+      <div class="highlight">
+        <strong>TrueFlow has been notified.</strong><br><br>
+        We are preparing your Statement of Work (SOW) and formal contract now — keep an eye on your inbox shortly so we can get started!
+      </div>
+      <button class="btn-close-modal" onclick="closeModal()">Got It</button>
+    </div>
+  </div>
+  
+  <script>
+    // Proposal metadata for API calls
+    const PROPOSAL_DATA = {
+      id: '07a9be3a-1e78-4feb-92e6-7bee8efd017b',
+      title: 'AI Generated Proposal',
+      clientName: 'joe schmoe',
+      clientCompany: 'acme inc',
+      notificationEmail: '',
+      apiUrl: 'https://signature-email-auto.preview.emergentagent.com/api',
+      version: '1775243920196'
+    };
+    
+    const STORAGE_KEY = 'proposal_accepted_' + PROPOSAL_DATA.id;
+    
+    // Disable editing in published version
+    document.querySelectorAll('[contenteditable]').forEach(el => el.removeAttribute('contenteditable'));
+    
+    // Check if already accepted (and version matches)
+    function checkAcceptanceState() {
+      const acceptedData = localStorage.getItem(STORAGE_KEY);
+      if (acceptedData) {
+        const data = JSON.parse(acceptedData);
+        // Check if this acceptance is for the current version
+        if (data.version === PROPOSAL_DATA.version) {
+          showAcceptedState(data.date);
+          return true;
+        } else {
+          // Clear old acceptance - proposal was updated/reset
+          localStorage.removeItem(STORAGE_KEY);
+        }
+      }
+      return false;
+    }
+    
+    // Show accepted state
+    function showAcceptedState(dateStr) {
+      const section = document.getElementById('acceptSection');
+      if (section) {
+        section.classList.add('accepted');
+        section.innerHTML = `
+          <h3>Proposal Accepted</h3>
+          <div class="accepted-info">
+            <div class="accepted-badge">✓ Accepted & Proceeding</div>
+            <div class="accepted-date">Accepted on ${dateStr}</div>
+          </div>
+        `;
+      }
+    }
+    
+    // Replace signature block with Accept button
+    const sigBlock = document.getElementById('signatureBlock');
+    if (sigBlock) {
+      sigBlock.outerHTML = `
+        <div class="accept-section" id="acceptSection">
+          <h3>Ready to Move Forward?</h3>
+          <button class="btn-accept" id="acceptBtn" onclick="handleAccept()">
+            ✓ Accept & Proceed
+          </button>
+        </div>
+      `;
+      
+      // Check if already accepted after creating the section
+      checkAcceptanceState();
+    }
+    
+    async function handleAccept() {
+      const btn = document.getElementById('acceptBtn');
+      const modal = document.getElementById('successModal');
+      const acceptDate = new Date();
+      const dateStr = acceptDate.toLocaleDateString('en-US', { 
+        year: 'numeric', month: 'long', day: 'numeric', 
+        hour: '2-digit', minute: '2-digit' 
+      });
+      
+      // Save to localStorage with version
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({
+        accepted: true,
+        date: dateStr,
+        timestamp: acceptDate.toISOString(),
+        version: PROPOSAL_DATA.version
+      }));
+      
+      // Show accepted state
+      showAcceptedState(dateStr);
+      
+      // Show success modal
+      modal.classList.add('active');
+      
+      // Send notification to backend
+      try {
+        const pageUrl = window.location.href;
+        await fetch(PROPOSAL_DATA.apiUrl + '/proposals/' + PROPOSAL_DATA.id + '/accepted', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            proposal_id: PROPOSAL_DATA.id,
+            title: PROPOSAL_DATA.title,
+            client_name: PROPOSAL_DATA.clientName,
+            client_company: PROPOSAL_DATA.clientCompany,
+            notification_email: PROPOSAL_DATA.notificationEmail,
+            accepted_at: acceptDate.toISOString(),
+            page_url: pageUrl
+          })
+        });
+        console.log('Acceptance notification sent');
+      } catch (err) {
+        console.log('Could not send notification:', err);
+      }
+    }
+    
+    function closeModal() {
+      document.getElementById('successModal').classList.remove('active');
+    }
+    
+    // Close modal on overlay click
+    document.getElementById('successModal').onclick = function(e) {
+      if (e.target === this) closeModal();
+    };
+  </script>
+</body>
+</html>
