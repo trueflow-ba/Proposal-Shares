@@ -1,0 +1,1203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Generated Proposal</title>
+  <style>
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --navy: #1a2744;
+      --blue: #2563eb;
+      --light-blue: #eff6ff;
+      --accent: #f59e0b;
+      --green: #16a34a;
+      --text: #1e293b;
+      --muted: #64748b;
+      --border: #e2e8f0;
+      --card-bg: #f8fafc;
+      --font-size-base: 15px;
+    }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      font-size: var(--font-size-base);
+      color: var(--text);
+      background: #f1f5f9;
+      line-height: 1.6;
+    }
+
+    [contenteditable]:hover { outline: 1px dashed #93c5fd; border-radius: 3px; cursor: text; }
+    [contenteditable]:focus { outline: 2px solid var(--blue); border-radius: 3px; }
+    [contenteditable="false"]:hover,
+    [contenteditable="false"]:focus { outline: none !important; cursor: default; }
+
+    /* === TOOLBAR === */
+    .toolbar {
+      position: sticky; top: 0; z-index: 100;
+      background: var(--navy); color: white;
+      padding: 10px 20px;
+      display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+    }
+    .toolbar-title { font-size: 12px; font-weight: 600; color: #94a3b8; flex: 1; min-width: 160px; }
+    .toolbar-btn {
+      background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2);
+      color: white; padding: 5px 12px; border-radius: 5px; cursor: pointer;
+      font-size: 12px; white-space: nowrap; transition: background 0.2s;
+    }
+    .toolbar-btn:hover { background: rgba(255,255,255,0.2); }
+    .toolbar-btn.pb-btn { background: rgba(99,102,241,0.25); border-color: rgba(129,140,248,0.5); }
+    .toolbar-btn.pb-btn:hover { background: rgba(99,102,241,0.45); }
+    .toolbar-btn.share-btn { background: rgba(37,99,235,0.35); border-color: rgba(96,165,250,0.5); }
+    .toolbar-btn.share-btn:hover { background: rgba(37,99,235,0.55); }
+    .toolbar-divider { width: 1px; height: 24px; background: rgba(255,255,255,0.2); margin: 0 2px; }
+
+    /* === SHARE BANNER (shown in share/recipient mode) === */
+    .share-banner {
+      background: var(--navy); color: white;
+      text-align: center; padding: 11px 20px;
+      font-size: 13px; font-weight: 500; line-height: 1.5;
+    }
+    .share-banner em { color: #94a3b8; font-style: normal; font-size: 12px; }
+
+    /* === MODAL === */
+    .modal-overlay {
+      position: fixed; inset: 0;
+      background: rgba(15,23,42,0.65);
+      z-index: 9999;
+      display: flex; align-items: center; justify-content: center;
+      padding: 20px;
+      backdrop-filter: blur(3px);
+    }
+    .modal-box {
+      background: white; border-radius: 14px;
+      width: 100%; max-width: 500px; max-height: 88vh;
+      overflow-y: auto;
+      box-shadow: 0 24px 64px rgba(0,0,0,0.3);
+    }
+    .modal-header {
+      padding: 18px 22px 14px; border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; gap: 10px;
+      position: sticky; top: 0; background: white;
+      border-radius: 14px 14px 0 0; z-index: 2;
+    }
+    .modal-header h3 { font-size: 16px; font-weight: 700; color: var(--navy); flex: 1; }
+    .modal-close-btn {
+      background: #f1f5f9; border: none;
+      width: 28px; height: 28px; border-radius: 50%;
+      font-size: 15px; cursor: pointer; color: var(--muted);
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 700; transition: background 0.2s;
+    }
+    .modal-close-btn:hover { background: #e2e8f0; color: var(--text); }
+    .modal-body { padding: 18px 22px 22px; }
+    .modal-section { margin-bottom: 18px; }
+    .modal-section:last-child { margin-bottom: 0; }
+    .modal-lbl {
+      display: block; font-size: 11px; font-weight: 700;
+      color: var(--muted); text-transform: uppercase;
+      letter-spacing: 0.8px; margin-bottom: 6px;
+    }
+    .modal-inp {
+      width: 100%; padding: 8px 11px;
+      border: 1px solid var(--border); border-radius: 7px;
+      font-size: 13.5px; color: var(--text); font-family: inherit;
+      outline: none; transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .modal-inp:focus { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(37,99,235,0.1); }
+    .modal-field-hint { font-size: 11px; color: var(--muted); margin-top: 4px; }
+    .email-add-row { display: flex; gap: 8px; }
+    .email-add-row .modal-inp { flex: 1; }
+    .btn-add {
+      background: var(--blue); color: white; border: none;
+      padding: 8px 14px; border-radius: 7px;
+      font-size: 13px; font-weight: 600; cursor: pointer;
+      white-space: nowrap; transition: background 0.2s;
+    }
+    .btn-add:hover { background: #1d4ed8; }
+    .btn-add:disabled { background: #94a3b8; cursor: not-allowed; }
+    .chips-wrap { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+    .e-chip {
+      display: inline-flex; align-items: center; gap: 5px;
+      background: #eff6ff; border: 1px solid #bfdbfe;
+      border-radius: 20px; padding: 3px 8px 3px 11px;
+      font-size: 12px; color: #1e40af; font-weight: 500;
+    }
+    .e-chip-x {
+      background: none; border: none; color: #93c5fd;
+      cursor: pointer; font-size: 14px; padding: 0;
+      line-height: 1; font-weight: 800;
+    }
+    .e-chip-x:hover { color: #2563eb; }
+    .link-box {
+      background: #f8fafc; border: 1px solid var(--border);
+      border-radius: 7px; padding: 10px 13px;
+      font-size: 11.5px; font-family: 'Courier New', monospace;
+      color: var(--navy); word-break: break-all; line-height: 1.55;
+      margin-bottom: 10px; user-select: all;
+    }
+    .link-btn-row { display: flex; gap: 8px; flex-wrap: wrap; }
+    .btn-copy-link {
+      background: var(--navy); color: white; border: none;
+      padding: 7px 15px; border-radius: 7px;
+      font-size: 12.5px; font-weight: 600; cursor: pointer;
+      transition: background 0.2s;
+    }
+    .btn-copy-link:hover { background: #0f172a; }
+    .btn-copy-link.copied { background: var(--green); }
+    .btn-regen {
+      background: var(--card-bg); color: var(--text);
+      border: 1px solid var(--border);
+      padding: 7px 13px; border-radius: 7px;
+      font-size: 12.5px; font-weight: 600;
+      cursor: pointer; transition: background 0.2s;
+    }
+    .btn-regen:hover { background: #e2e8f0; }
+    .modal-warn {
+      background: #fffbeb; border: 1px solid #fde68a;
+      border-left: 4px solid var(--accent); border-radius: 8px;
+      padding: 12px 14px; font-size: 12px; color: #78350f; line-height: 1.65;
+    }
+    .modal-warn strong { display: block; margin-bottom: 3px; font-size: 12.5px; color: #92400e; }
+
+    /* === INTERACTIVE SIGNATURE (share / recipient mode) === */
+    .sig-click-area {
+      min-height: 54px; border: 2px dashed #c7d2fe;
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; transition: border-color 0.2s, background 0.2s;
+      margin-bottom: 8px; background: #fafbff; padding: 8px 12px;
+    }
+    .sig-click-area:hover { border-color: var(--blue); background: #eff6ff; }
+    .sig-click-ph {
+      font-size: 13px; color: #a5b4fc;
+      font-style: italic; pointer-events: none; text-align: center;
+    }
+    .sig-inp-wrap { display: flex; flex-direction: column; gap: 8px; margin-bottom: 8px; }
+    .sig-type-inp {
+      width: 100%; padding: 7px 10px;
+      border: 1px solid var(--border); border-radius: 6px;
+      font-size: 13px; font-family: inherit;
+      outline: none; box-sizing: border-box; transition: border-color 0.2s;
+    }
+    .sig-type-inp:focus { border-color: var(--blue); }
+    .sig-cursive {
+      font-family: cursive; font-size: 28px; color: var(--navy);
+      padding: 4px 4px 2px; border-bottom: 1.5px solid #c7d2fe;
+      min-height: 44px; line-height: 1.2;
+    }
+    .sig-action-row { display: flex; gap: 8px; align-items: center; }
+    .btn-sign-doc {
+      background: var(--green); color: white; border: none;
+      padding: 7px 16px; border-radius: 6px;
+      font-size: 12.5px; font-weight: 700; cursor: pointer;
+      transition: background 0.2s;
+    }
+    .btn-sign-doc:hover { background: #15803d; }
+    .btn-sign-doc:disabled { background: #94a3b8; cursor: not-allowed; }
+    .btn-clr-sig {
+      background: none; border: none; color: var(--muted);
+      font-size: 12px; cursor: pointer; text-decoration: underline; padding: 0;
+    }
+    .sig-final-wrap { margin-bottom: 8px; }
+    .sig-final-name {
+      font-family: cursive; font-size: 32px; color: var(--navy);
+      border-bottom: 2px solid var(--navy); padding-bottom: 2px;
+      display: inline-block; min-width: 180px;
+    }
+    .sig-final-badge {
+      display: inline-flex; align-items: center; gap: 4px;
+      background: #f0fdf4; border: 1px solid #86efac;
+      border-radius: 4px; padding: 2px 8px;
+      font-size: 11px; color: var(--green); font-weight: 700;
+      margin-left: 10px; vertical-align: middle;
+      font-family: 'Segoe UI', system-ui, sans-serif;
+    }
+
+    /* === WRAPPER === */
+    .doc-wrapper { max-width: 900px; margin: 30px auto; padding: 0 20px 60px; }
+
+    /* === COVER === */
+    .cover {
+      background: var(--navy); color: white;
+      padding: 48px 48px 40px; border-radius: 12px 12px 0 0; text-align: center;
+    }
+    .cover-badge {
+      display: inline-block; background: var(--blue); color: white;
+      font-size: 11px; font-weight: 700; letter-spacing: 1.5px;
+      text-transform: uppercase; padding: 4px 14px; border-radius: 20px; margin-bottom: 20px;
+    }
+    .cover h1 { font-size: 32px; font-weight: 800; margin-bottom: 8px; letter-spacing: -0.5px; }
+    .cover-tagline { font-size: 15px; color: #94a3b8; font-style: italic; margin: 14px 0 28px; }
+    .cover-meta {
+      display: grid; grid-template-columns: 1fr 1px 1fr;
+      background: rgba(255,255,255,0.05); border-radius: 8px;
+      padding: 20px; text-align: left; max-width: 560px; margin: 0 auto 24px;
+    }
+    .cover-meta-divider { background: rgba(255,255,255,0.15); }
+    .cover-meta-item { padding: 0 20px; }
+    .cover-meta-label { font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: #94a3b8; margin-bottom: 4px; }
+    .cover-meta-value { font-size: 14px; font-weight: 600; color: white; }
+    .cover-meta-sub { font-size: 12px; color: #94a3b8; }
+    .cover-id { font-size: 11px; color: #64748b; }
+
+    /* === SECTIONS === */
+    .section {
+      background: white; padding: 40px 48px;
+      border-left: 1px solid var(--border); border-right: 1px solid var(--border); border-bottom: 1px solid var(--border);
+    }
+    .exec-summary {
+      background: white; padding: 40px 48px;
+      border-left: 1px solid var(--border); border-right: 1px solid var(--border); border-bottom: 1px solid var(--border);
+    }
+    .exec-summary h2 { font-size: 22px; font-weight: 700; color: var(--navy); margin-bottom: 16px; }
+    .exec-summary p { margin-bottom: 14px; line-height: 1.75; }
+    .section-header { display: flex; align-items: center; gap: 14px; margin-bottom: 24px; }
+    .section-number {
+      width: 36px; height: 36px; min-width: 36px; background: var(--navy); color: white;
+      font-size: 16px; font-weight: 800; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+    }
+    .section-title { font-size: 22px; font-weight: 700; color: var(--navy); }
+    .section-intro { margin-bottom: 20px; line-height: 1.75; }
+
+    /* === PILLARS === */
+    .pillars { display: flex; flex-direction: column; gap: 12px; margin-top: 20px; }
+    .pillar { padding: 14px 18px; background: var(--light-blue); border-left: 4px solid var(--blue); border-radius: 6px; font-size: 14px; line-height: 1.65; }
+    .pillar-title { font-weight: 700; color: var(--navy); }
+
+    /* === CAPABILITY CARDS === */
+    .capabilities-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin-top: 20px; }
+    .cap-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 8px; padding: 18px 20px; }
+    .cap-card-header { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+    .cap-icon { font-size: 20px; }
+    .cap-title { font-weight: 700; font-size: 14px; color: var(--navy); }
+    .cap-text { font-size: 13px; color: var(--muted); line-height: 1.6; }
+
+    /* === CLARITY BOX === */
+    .clarity-box {
+      background: #fffbeb; border: 1px solid #fde68a;
+      border-left: 4px solid var(--accent); border-radius: 8px;
+      padding: 20px 24px; margin-top: 28px;
+    }
+    .clarity-box h3 { font-size: 15px; font-weight: 700; color: #92400e; margin-bottom: 10px; }
+    .clarity-box p { font-size: 14px; color: #78350f; line-height: 1.7; }
+
+    /* === PLATFORM STACK === */
+    .platform-stack { display: flex; flex-direction: column; gap: 12px; margin: 20px 0; }
+    .platform-item { padding: 14px 18px; background: var(--card-bg); border: 1px solid var(--border); border-radius: 8px; font-size: 14px; line-height: 1.65; }
+    .platform-item strong { color: var(--navy); }
+
+    /* === SANDBOX BOX === */
+    .sandbox-box { background: #f0f9ff; border: 1px solid #bae6fd; border-left: 4px solid #0ea5e9; border-radius: 8px; padding: 18px 22px; margin-top: 20px; font-size: 14px; color: #0c4a6e; line-height: 1.7; }
+    .sandbox-box h3 { font-size: 15px; font-weight: 700; margin-bottom: 8px; }
+
+    /* === CALL FLOW === */
+    .call-flow { background: var(--navy); color: white; border-radius: 10px; padding: 28px 32px; margin-top: 24px; font-size: 13px; }
+    .call-flow-title { font-size: 13px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 14px; }
+    .call-flow-entry { text-align: center; font-size: 14px; font-weight: 600; padding: 10px; background: rgba(255,255,255,0.07); border-radius: 6px; margin-bottom: 6px; }
+    .flow-arrow { text-align: center; color: #94a3b8; margin: 4px 0; font-size: 16px; }
+    .flow-options { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 8px 0; }
+    .flow-option { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 16px; }
+    .flow-option h4 { font-size: 12px; font-weight: 700; color: #60a5fa; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 12px; }
+    .flow-time { font-size: 11px; color: var(--accent); font-weight: 600; text-transform: uppercase; letter-spacing: 0.8px; margin: 10px 0 5px; }
+    .flow-step { font-size: 12px; color: #cbd5e1; padding: 2px 0; }
+    .flow-action-item { font-size: 12px; color: #86efac; padding: 2px 0; }
+    .flow-footer { margin-top: 14px; padding-top: 14px; border-top: 1px solid rgba(255,255,255,0.1); }
+    .flow-footer-note { text-align: center; font-size: 11px; color: #64748b; font-style: italic; margin-bottom: 4px; }
+    .flow-footer-step { text-align: center; padding: 10px; font-size: 13px; color: #e2e8f0; background: rgba(37,99,235,0.3); border-radius: 6px; margin: 4px 0; }
+    .flow-footer-step.alert { background: rgba(245,158,11,0.2); color: #fde68a; font-size: 12px; }
+
+    /* === ZAPIER TABLE === */
+    .zapier-table { width: 100%; border-collapse: collapse; margin-top: 16px; font-size: 13px; }
+    .zapier-table tr { border-bottom: 1px solid var(--border); }
+    .zapier-table td { padding: 11px 14px; vertical-align: top; }
+    .zapier-table td:first-child { font-weight: 700; color: white; background: var(--navy); width: 90px; border-radius: 4px; white-space: nowrap; }
+    .zapier-table td:nth-child(2) { color: var(--muted); background: var(--card-bg); }
+
+    /* === TIMELINE === */
+    .timeline { display: flex; flex-direction: column; gap: 18px; margin-top: 24px; }
+    .timeline-phase { border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+    .phase-header { background: var(--navy); color: white; padding: 14px 20px; display: flex; align-items: center; gap: 14px; }
+    .phase-number { width: 32px; height: 32px; min-width: 32px; background: var(--blue); color: white; font-weight: 800; font-size: 15px; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+    .phase-title { font-weight: 700; font-size: 16px; }
+    .phase-days { margin-left: auto; font-size: 12px; color: #94a3b8; white-space: nowrap; }
+    .phase-body { padding: 18px 20px; background: white; }
+    .phase-items { list-style: none; display: flex; flex-direction: column; gap: 8px; }
+    .phase-items li { font-size: 13.5px; padding-left: 20px; position: relative; color: var(--text); line-height: 1.55; }
+    .phase-items li::before { content: '→'; position: absolute; left: 0; color: var(--blue); font-weight: 700; }
+
+    /* === PRICING TABLE === */
+    .pricing-table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 14px; }
+    .pricing-table th { background: var(--navy); color: white; padding: 12px 16px; text-align: left; font-size: 12px; letter-spacing: 0.5px; }
+    .pricing-table th:nth-child(3), .pricing-table th:nth-child(4) { text-align: right; }
+    .pricing-table td { padding: 13px 16px; border-bottom: 1px solid var(--border); vertical-align: top; }
+    .pricing-table td:nth-child(3), .pricing-table td:nth-child(4) { text-align: right; font-weight: 600; white-space: nowrap; }
+    .pricing-table tr:nth-child(even) td { background: var(--card-bg); }
+    .pricing-table .total-row td { background: #eff6ff; font-weight: 700; color: var(--navy); border-top: 2px solid var(--blue); }
+    .pricing-table .discount-row td { background: #fefce8; color: #92400e; }
+    .line-item-title { font-weight: 600; color: var(--navy); margin-bottom: 3px; }
+    .line-item-desc { font-size: 12px; color: var(--muted); line-height: 1.5; }
+
+    /* === PAYMENT === */
+    .payment-note { background: #f0fdf4; border: 1px solid #86efac; border-left: 4px solid var(--green); border-radius: 8px; padding: 16px 20px; margin-top: 20px; font-size: 13.5px; color: #14532d; line-height: 1.7; }
+    .payment-note strong { display: block; font-size: 14px; margin-bottom: 6px; }
+
+    /* === WHY TRUEFLOW === */
+    .why-grid { display: grid; grid-template-columns: repeat(2,1fr); gap: 16px; margin-top: 24px; }
+    .why-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 8px; padding: 18px 20px; }
+    .why-card h3 { font-size: 14px; font-weight: 700; color: var(--navy); margin-bottom: 8px; }
+    .why-card p { font-size: 13px; color: var(--muted); line-height: 1.6; }
+
+    /* === GET STARTED === */
+    .get-started-steps { display: flex; flex-direction: column; gap: 14px; margin-top: 22px; }
+    .get-started-step { display: flex; gap: 16px; align-items: flex-start; }
+    .step-num { width: 32px; height: 32px; min-width: 32px; background: var(--blue); color: white; font-weight: 800; font-size: 14px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-top: 2px; }
+    .step-content { font-size: 14px; line-height: 1.65; flex: 1; }
+    .step-content strong { color: var(--navy); display: block; margin-bottom: 2px; }
+    .valid-through { margin-top: 24px; padding: 14px 20px; background: #eff6ff; border-radius: 8px; font-size: 14px; color: var(--navy); text-align: center; }
+    .contact-block { margin-top: 16px; padding: 16px 20px; background: var(--card-bg); border: 1px solid var(--border); border-radius: 8px; font-size: 14px; text-align: center; }
+    .contact-block a { color: var(--blue); text-decoration: none; }
+
+    /* === SIGNATURE === */
+    .signature-block { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-top: 32px; }
+    .sig-label { font-size: 12px; color: var(--muted); margin-bottom: 8px; }
+    .sig-line { height: 48px; border-bottom: 1px solid var(--border); margin-bottom: 8px; }
+    .sig-date { font-size: 12px; color: var(--muted); }
+
+    /* === APPENDIX === */
+    .appendix-header { background: #0f172a; color: white; padding: 32px 48px; }
+    .appendix-header h2 { font-size: 22px; font-weight: 700; margin-bottom: 6px; }
+    .appendix-header p { font-size: 14px; color: #94a3b8; }
+    .appendix-body { padding: 36px 48px; background: white; border-left: 1px solid var(--border); border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); border-radius: 0 0 12px 12px; }
+    .safeguard-block { margin-bottom: 36px; padding-bottom: 36px; border-bottom: 1px solid var(--border); }
+    .safeguard-block:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+    .safeguard-title { font-size: 18px; font-weight: 700; color: var(--navy); margin-bottom: 16px; }
+    .safeguard-body p { font-size: 14px; line-height: 1.75; margin-bottom: 12px; }
+    .safeguard-body strong { color: var(--navy); }
+    .kill-switch-list { list-style: none; display: flex; flex-direction: column; gap: 8px; margin: 14px 0; }
+    .kill-switch-list li { font-size: 13.5px; padding: 8px 14px; background: #f0fdf4; border-left: 3px solid var(--green); border-radius: 4px; color: #14532d; }
+
+    /* === FOOTER === */
+    .doc-footer { text-align: center; padding: 20px; font-size: 11px; color: var(--muted); line-height: 1.7; }
+
+    /* === PAGE BREAK SYSTEM === */
+    .pb-insert-zone { height: 24px; display: flex; align-items: center; justify-content: center; cursor: pointer; opacity: 0; transition: opacity 0.18s; }
+    .pb-insert-zone:hover { opacity: 1 !important; }
+    .pb-insert-inner { display: flex; align-items: center; gap: 6px; background: #eef2ff; border: 1px dashed #818cf8; border-radius: 20px; padding: 3px 16px; font-size: 11px; color: #4f46e5; font-weight: 700; white-space: nowrap; letter-spacing: 0.4px; pointer-events: none; }
+    .page-break-el { margin: 0; line-height: 0; }
+    .page-break-visual { display: flex; align-items: center; gap: 12px; padding: 8px 0; user-select: none; line-height: 1; }
+    .pb-line { flex: 1; border-top: 2px dashed #a5b4fc; }
+    .pb-badge { display: flex; align-items: center; gap: 8px; background: #eef2ff; border: 1px solid #c7d2fe; border-radius: 20px; padding: 5px 14px; font-size: 10px; font-weight: 700; color: #4338ca; text-transform: uppercase; letter-spacing: 1px; white-space: nowrap; }
+    .pb-remove-btn { background: none; border: none; color: #f87171; cursor: pointer; font-size: 15px; padding: 0 0 0 4px; line-height: 1; font-weight: 700; }
+    .pb-remove-btn:hover { color: #dc2626; }
+    .pb-trigger { display: block; height: 0; overflow: hidden; line-height: 0; font-size: 0; margin: 0; padding: 0; }
+
+    /* === RESPONSIVE === */
+    @media (max-width: 640px) {
+      .cover { padding: 28px 20px; }
+      .cover h1 { font-size: 22px; }
+      .cover-meta { grid-template-columns: 1fr; }
+      .cover-meta-divider { display: none; }
+      .exec-summary, .section { padding: 24px 20px; }
+      .capabilities-grid, .why-grid, .flow-options { grid-template-columns: 1fr; }
+      .signature-block { grid-template-columns: 1fr; }
+      .appendix-header, .appendix-body { padding: 24px 20px; }
+      .toolbar-title { display: none; }
+      .modal-box { max-width: 100%; }
+    }
+
+    /* === PRINT === */
+    @media print {
+      body { background: white; font-size: 13px; }
+      .toolbar, .pb-insert-zone, .page-break-visual, .modal-overlay, .share-banner { display: none !important; }
+      .pb-trigger { display: block !important; break-before: page !important; page-break-before: always !important; height: 0 !important; overflow: hidden !important; margin: 0 !important; padding: 0 !important; line-height: 0 !important; font-size: 0 !important; }
+      .doc-wrapper { margin: 0; padding: 0; max-width: 100%; }
+      .cover { border-radius: 0; }
+      .appendix-body { border-radius: 0; }
+      .section-solution { break-before: page; }
+      .section-architecture { break-before: page; }
+      .section-timeline { break-before: page; }
+      .section-investment { break-before: page; }
+      .section-why { break-before: page; }
+      .section-getstarted { break-before: page; }
+      .section-appendix { break-before: page; }
+      .safeguard-block + .safeguard-block { break-before: page; }
+      .cap-card, .pillar, .platform-item, .why-card, .get-started-step, .signature-block, .contact-block, .valid-through, .flow-option, .zapier-table tr, .pricing-table tr, .phase-items li, .kill-switch-list li { break-inside: avoid; page-break-inside: avoid; }
+      .call-flow, .capabilities-grid, .why-grid, .timeline-phase, .phase-body, .payment-note, .sandbox-box, .clarity-box, .kill-switch-list, .pillars, .platform-stack, .timeline, .get-started-steps { break-inside: auto !important; page-break-inside: auto !important; }
+      p { break-inside: auto !important; page-break-inside: auto !important; orphans: 3 !important; widows: 3 !important; }
+      h2, h3, h4, .section-title, .safeguard-title, .phase-title, .cap-title, .call-flow-title { break-after: avoid !important; page-break-after: avoid !important; }
+      .section, .exec-summary { padding-top: 28px; padding-bottom: 28px; border-left: none; border-right: none; margin-bottom: 0; }
+      [contenteditable]:hover, [contenteditable]:focus { outline: none; }
+      .cover, .phase-header, .appendix-header, .pricing-table th, .pricing-table .total-row td, .pricing-table .discount-row td, .section-number, .phase-number, .step-num, .pillar, .clarity-box, .sandbox-box, .payment-note, .kill-switch-list li, .call-flow, .flow-footer-step, .zapier-table td:first-child { -webkit-print-color-adjust: exact; print-color-adjust: exact; color-adjust: exact; }
+      @page { size: letter portrait; margin: 0.75in; }
+    }
+
+    /* ============================================================
+       GITHUB PAGES SHARING — ADDED
+       ============================================================ */
+    .gh-section-divider {
+      border-top: 1px solid var(--border);
+      padding-top: 18px; margin-top: 4px;
+    }
+    .gh-section-heading {
+      display: flex; align-items: center; gap: 8px; margin-bottom: 8px;
+    }
+    .gh-section-heading span {
+      font-size: 13px; font-weight: 700; color: var(--navy);
+    }
+    .gh-section-desc {
+      font-size: 12px; color: var(--muted); line-height: 1.6; margin-bottom: 12px;
+    }
+    .gh-creds-row {
+      display: flex; align-items: center; gap: 8px;
+      flex-wrap: wrap; margin-bottom: 10px;
+    }
+    .gh-creds-badge {
+      display: inline-flex; align-items: center; gap: 5px;
+      background: #f0fdf4; border: 1px solid #86efac;
+      border-radius: 5px; padding: 3px 10px;
+      font-size: 11.5px; color: var(--green); font-weight: 600;
+    }
+    .gh-creds-badge-none {
+      display: inline-flex; align-items: center; gap: 5px;
+      background: #fefce8; border: 1px solid #fde68a;
+      border-radius: 5px; padding: 3px 10px;
+      font-size: 11.5px; color: #92400e; font-weight: 600;
+    }
+    .btn-gh-upload {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: #24292f; color: white; border: none;
+      padding: 8px 16px; border-radius: 7px;
+      font-size: 12.5px; font-weight: 600; cursor: pointer;
+      transition: background 0.2s; font-family: inherit;
+    }
+    .btn-gh-upload:hover { background: #1c2128; }
+    .gh-status-box {
+      border-radius: 8px; padding: 12px 14px;
+      display: flex; gap: 10px; align-items: flex-start;
+    }
+    .gh-status-loading { background: #eff6ff; border: 1px solid #bfdbfe; }
+    .gh-status-success { background: #f0fdf4; border: 1px solid #86efac; }
+    .gh-status-error   { background: #fef2f2; border: 1px solid #fecaca; }
+    .gh-status-title { font-size: 13px; font-weight: 700; color: var(--navy); margin-bottom: 3px; }
+    .gh-status-sub { font-size: 11.5px; color: var(--muted); line-height: 1.5; }
+    .gh-spinner {
+      width: 16px; height: 16px; flex-shrink: 0; margin-top: 2px;
+      border: 2px solid #bfdbfe; border-top-color: var(--blue);
+      border-radius: 50%; display: inline-block;
+      animation: ghSpin 0.75s linear infinite;
+    }
+    @keyframes ghSpin { to { transform: rotate(360deg); } }
+    .gh-icon-btn {
+      background: none; border: none; color: var(--muted);
+      cursor: pointer; font-size: 14px; padding: 0 0 0 4px;
+      line-height: 1; flex-shrink: 0; transition: color 0.15s;
+    }
+    .gh-icon-btn:hover { color: var(--text); }
+
+
+
+    /* Published page specific styles */
+    .doc-wrapper { 
+      max-width: 900px; 
+      margin: 30px auto; 
+      padding: 0 20px 60px; 
+    }
+    
+    /* Accept Button Styles */
+    .accept-section {
+      margin-top: 32px;
+      text-align: center;
+      padding: 30px;
+      background: linear-gradient(135deg, #f0fdf4 0%, #eff6ff 100%);
+      border: 2px solid #86efac;
+      border-radius: 12px;
+    }
+    .accept-section.accepted {
+      background: linear-gradient(135deg, #eff6ff 0%, #f0fdf4 100%);
+      border-color: #93c5fd;
+    }
+    .accept-section h3 {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--navy);
+      margin-bottom: 16px;
+    }
+    .accepted-info {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+    }
+    .accepted-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: linear-gradient(135deg, #16a34a 0%, #22c55e 100%);
+      color: white;
+      padding: 12px 28px;
+      border-radius: 10px;
+      font-size: 18px;
+      font-weight: 700;
+    }
+    .accepted-date {
+      font-size: 13px;
+      color: var(--muted);
+    }
+    .btn-accept {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      background: linear-gradient(135deg, #16a34a 0%, #15803d 100%);
+      color: white;
+      border: none;
+      padding: 16px 40px;
+      border-radius: 10px;
+      font-size: 18px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 15px rgba(22, 163, 74, 0.3);
+    }
+    .btn-accept:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(22, 163, 74, 0.4);
+    }
+    .btn-accept:active {
+      transform: translateY(0);
+    }
+    
+    /* Success Modal */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.7);
+      backdrop-filter: blur(4px);
+      z-index: 9999;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.3s ease;
+    }
+    .modal-overlay.active {
+      opacity: 1;
+      visibility: visible;
+    }
+    .success-modal {
+      background: white;
+      border-radius: 16px;
+      padding: 40px;
+      max-width: 480px;
+      width: 100%;
+      text-align: center;
+      box-shadow: 0 25px 50px rgba(0, 0, 0, 0.25);
+      transform: scale(0.9);
+      transition: transform 0.3s ease;
+    }
+    .modal-overlay.active .success-modal {
+      transform: scale(1);
+    }
+    .success-icon {
+      width: 80px;
+      height: 80px;
+      background: linear-gradient(135deg, #16a34a 0%, #22c55e 100%);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 24px;
+      font-size: 40px;
+      color: white;
+    }
+    .success-modal h2 {
+      font-size: 24px;
+      font-weight: 800;
+      color: var(--navy);
+      margin-bottom: 16px;
+    }
+    .success-modal p {
+      font-size: 15px;
+      line-height: 1.7;
+      color: var(--text);
+      margin-bottom: 24px;
+    }
+    .success-modal .highlight {
+      background: #f0fdf4;
+      border: 1px solid #86efac;
+      border-radius: 8px;
+      padding: 16px;
+      font-size: 14px;
+      color: #14532d;
+    }
+    .btn-close-modal {
+      margin-top: 24px;
+      background: var(--navy);
+      color: white;
+      border: none;
+      padding: 12px 32px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .btn-close-modal:hover {
+      background: #0f172a;
+    }
+    
+    @media print {
+      body { background: white; }
+      .no-print { display: none !important; }
+      .accept-section { break-inside: avoid; }
+    }
+  </style>
+</head>
+<body>
+  
+<div class="doc-wrapper">
+
+<div class="cover">
+<div class="cover-badge" contenteditable="true">Confidential Proposal</div>
+<h1 contenteditable="true">AI-Powered Phone Order Management for Brady's Fish House</h1>
+<div class="cover-tagline" contenteditable="true">"Never Miss Another Order — Intelligent Call Handling That Works the Fry Line as Hard as Your Team"</div>
+<div class="cover-meta">
+<div class="cover-meta-item">
+<div class="cover-meta-label" contenteditable="true">Prepared For</div>
+<div class="cover-meta-value" contenteditable="true">brad smith</div>
+<div class="cover-meta-sub" contenteditable="true">bradys fish house</div>
+</div>
+<div class="cover-meta-divider"></div>
+<div class="cover-meta-item">
+<div class="cover-meta-label" contenteditable="true">Prepared By</div>
+<div class="cover-meta-value" contenteditable="true">Jonathan McComb</div>
+<div class="cover-meta-sub" contenteditable="true">TrueFlow Business Automations</div>
+</div>
+</div>
+<div class="cover-id" contenteditable="true">Proposal ID: TFLOW-2026-2026-BFH-001 · Confidential</div>
+</div>
+
+<div class="exec-summary">
+<h2 contenteditable="true">Executive Summary: Transforming Phone Order Operations at Brady's Fish House</h2>
+<p contenteditable="true">Brady's Fish House has built a loyal customer base that loves calling in to place their seafood orders — and that popularity is both a testament to Brad Smith's success and the source of a real operational bottleneck. During peak lunch and dinner rushes, incoming call volume overwhelms the front-of-house staff, resulting in missed calls, frustrated customers placed on long holds, and kitchen orders that never make it through the line. Every unanswered call is a lost sale, and every distracted staff member pulled to the phone is one less person keeping the dining room and kitchen running smoothly.</p>
+<p contenteditable="true">Our proposed solution is a purpose-built AI Receptionist designed specifically for Brady's Fish House that plugs directly into your existing Clarity VoIP phone infrastructure. This AI handles every inbound call with the warmth and accuracy your customers expect — greeting callers, walking them through the menu, capturing order details, confirming pricing, and passing completed orders directly into your ordering system without any manual staff intervention. Rather than patching over the problem with more headcount, this solution eliminates the root cause: the mismatch between call volume and available staff attention.</p>
+<p contenteditable="true">This engagement is built on three core pillars: seamless integration with your current Clarity VoIP setup so there is zero disruption to how calls reach your restaurant today, intelligent order capture that mirrors the accuracy and friendliness of your best staff member, and a fully automated order pipeline that connects the AI's output directly to your kitchen and ordering workflow. The result is a Brady's Fish House that answers every call, captures every order, and lets Brad and his team focus entirely on delivering great food and great service.</p>
+<div class="pillars">
+<div class="pillar" contenteditable="true"><span class="pillar-title" contenteditable="true">Zero Disruption to Your Current Phone Setup — </span>Brady's Fish House already runs on Clarity VoIP, and the AI Receptionist is built to work within that existing infrastructure. No new phone lines, no hardware swaps, no confusing migrations — your customers will call the same number they always have, and the AI takes it from there.</div>
+<div class="pillar" contenteditable="true"><span class="pillar-title" contenteditable="true">Order Accuracy You Can Stake Your Reputation On — </span>At a seafood restaurant like Brady's Fish House, order accuracy isn't optional. The AI is trained specifically on your menu — every item, every modifier, every special — so it captures exactly what the customer wants and passes it through correctly every single time, with no mishearing or scribbled tickets.</div>
+<div class="pillar" contenteditable="true"><span class="pillar-title" contenteditable="true">Scalable Capacity That Grows With Your Rush — </span>Whether it's a quiet Tuesday afternoon or a packed Friday night rush with fifteen calls coming in simultaneously, the AI Receptionist handles every line without ever putting a customer on hold. Brady's Fish House gets the equivalent of a full phone team available around the clock, at a fraction of the cost of a single part-time hire.</div>
+</div>
+</div>
+
+<div class="section section-solution">
+<div class="section-header">
+<div class="section-number"></div>
+<div class="section-title" contenteditable="true">Section 1: The Brady's Fish House AI Receptionist Solution</div>
+</div>
+<p class="section-intro" contenteditable="true">We will design, build, and deploy a custom AI Receptionist specifically for Brady's Fish House that takes full ownership of every inbound phone call related to order placement. The AI will greet callers using a friendly, on-brand voice persona — one that feels like a natural extension of your restaurant's hospitality. It will guide customers through the ordering process conversationally, handle special requests and item customizations, confirm order totals, collect pickup or delivery information, and close out the interaction with a warm confirmation — all without any involvement from your floor or counter staff.</p>
+<p class="section-intro" contenteditable="true">The AI Receptionist will be integrated directly with your Clarity VoIP phone system, ensuring that calls route to the AI automatically the moment they come in, with no changes to your customer-facing phone number or call experience. On the back end, completed orders will be pushed directly into your existing ordering system in real time, eliminating the need for staff to manually re-enter phone orders. This creates a closed-loop pipeline from customer call to kitchen ticket with no human bottleneck in between.</p>
+<h3 contenteditable="true" style="font-size:17px;font-weight:700;color:var(--navy);margin-bottom:12px;"></h3>
+<div class="capabilities-grid">
+<div class="cap-card">
+<div class="cap-card-header"><span class="cap-icon" contenteditable="true">📞</span><span class="cap-title" contenteditable="true">Clarity VoIP Native Integration</span></div>
+<p class="cap-text" contenteditable="true">The AI Receptionist connects directly to Brady's Fish House's existing Clarity VoIP account, intercepting inbound calls and managing them end-to-end without requiring any changes to your current phone number or hardware. Call routing logic is configured within Clarity so that the AI answers immediately during configured hours, with optional overflow rules for edge cases. Your team never needs to touch the phone system configuration after go-live.</p>
+</div>
+<div class="cap-card">
+<div class="cap-card-header"><span class="cap-icon" contenteditable="true">🐟</span><span class="cap-title" contenteditable="true">Full Brady's Fish House Menu Knowledge</span></div>
+<p class="cap-text" contenteditable="true">The AI is trained on your complete menu — every entrée, side, seafood special, combo, and seasonal offering — so it can answer menu questions, guide indecisive customers, and capture every modifier and customization accurately. When a customer asks about the difference between the fried cod basket and the grilled tilapia plate, the AI knows the answer. Menu updates are easy to push through as your offerings change.</p>
+</div>
+<div class="cap-card">
+<div class="cap-card-header"><span class="cap-icon" contenteditable="true">🎙️</span><span class="cap-title" contenteditable="true">Natural Conversational Order Taking</span></div>
+<p class="cap-text" contenteditable="true">Rather than a rigid phone tree or a robotic script, the AI engages customers in a natural back-and-forth conversation designed to feel like speaking with an attentive counter staff member. It handles corrections mid-order, manages substitution requests, and confirms the full order back to the customer before finalizing — reducing errors and improving the caller experience at Brady's Fish House.</p>
+</div>
+<div class="cap-card">
+<div class="cap-card-header"><span class="cap-icon" contenteditable="true">🔗</span><span class="cap-title" contenteditable="true">Real-Time Order System Integration</span></div>
+<p class="cap-text" contenteditable="true">Once a call is completed, the AI pushes the captured order directly into Brady's Fish House's ordering system in real time, formatted exactly as a manually entered order would appear. This eliminates the double-handling of phone orders and ensures the kitchen receives tickets immediately without staff needing to transcribe anything. The integration is tested thoroughly before launch to guarantee zero data loss.</p>
+</div>
+<div class="cap-card">
+<div class="cap-card-header"><span class="cap-icon" contenteditable="true">🕐</span><span class="cap-title" contenteditable="true">24/7 Availability and Peak Rush Coverage</span></div>
+<p class="cap-text" contenteditable="true">The AI Receptionist is always on — whether Brady's Fish House is slammed on a Friday evening with a dozen lines ringing at once or fielding a single call on a slow Monday morning. There is no hold time, no busy signal, and no missed call due to staff being occupied. Every customer who calls during business hours reaches the AI instantly and gets their order placed without delay.</p>
+</div>
+<div class="cap-card">
+<div class="cap-card-header"><span class="cap-icon" contenteditable="true">📋</span><span class="cap-title" contenteditable="true">Order Confirmation and Pickup Time Communication</span></div>
+<p class="cap-text" contenteditable="true">After capturing an order, the AI provides customers with a confirmation of their items, total, and estimated pickup or delivery time based on logic configured by Brad's team. This sets accurate expectations and reduces follow-up calls asking 'is my order ready yet?' — freeing up even more staff time during the busiest periods.</p>
+</div>
+<div class="cap-card">
+<div class="cap-card-header"><span class="cap-icon" contenteditable="true">📊</span><span class="cap-title" contenteditable="true">Call Logs and Order Reporting Dashboard</span></div>
+<p class="cap-text" contenteditable="true">Every call handled by the AI is logged with a full transcript, order summary, timestamp, and resolution status, giving Brad Smith complete visibility into phone order volume, popular items, peak call times, and any calls that required escalation. This data is invaluable for staffing decisions, menu planning, and understanding your customer ordering patterns.</p>
+</div>
+<div class="cap-card">
+<div class="cap-card-header"><span class="cap-icon" contenteditable="true">🔁</span><span class="cap-title" contenteditable="true">Escalation to Live Staff When Needed</span></div>
+<p class="cap-text" contenteditable="true">For situations the AI cannot resolve — such as a complaint, a highly complex special request, or a customer who explicitly asks to speak with a person — the system is configured with a seamless warm handoff protocol that transfers the caller to an available staff member along with a brief summary of the conversation so far. No customer ever feels stuck or ignored.</p>
+</div>
+</div>
+<div class="clarity-box">
+<h3 contenteditable="true">Important Note: Clarity VoIP Configuration</h3>
+<p contenteditable="true">Brady's Fish House currently operates on Clarity VoIP, which serves as the telephony backbone for this solution. During the setup phase, we will work directly with your Clarity account settings to configure call routing, forwarding rules, and any SIP trunk integrations required to connect the AI Receptionist to your inbound call flow. Brad Smith or a designated team member with Clarity admin access will need to be available during the integration phase (approximately Days 3–7) to authorize configuration changes. No new VoIP service is required — we work within your existing Clarity subscription.</p>
+</div>
+</div>
+
+<div class="section section-architecture">
+<div class="section-header">
+<div class="section-number"></div>
+<div class="section-title" contenteditable="true">Section 2: Technical Architecture for Brady's Fish House</div>
+</div>
+<p class="section-intro" contenteditable="true">The Brady's Fish House AI Receptionist solution is built on a three-layer architecture: the telephony layer (Clarity VoIP), the AI conversation layer (the voice intelligence engine that handles the call), and the integration layer (the middleware that connects call outputs to your ordering system). Each layer is purpose-configured for Brady's Fish House's specific menu, business hours, and ordering workflow. The architecture is designed for reliability and simplicity — there are no fragile custom-coded pieces that require ongoing developer maintenance, and the system is built to handle simultaneous calls without performance degradation.</p>
+<h3 contenteditable="true" style="font-size:16px;font-weight:700;color:var(--navy);margin-bottom:12px;"></h3>
+<div class="platform-stack">
+<div class="platform-item" contenteditable="true">Clarity VoIP — Telephony &amp; Call Routing Layer: Brady's Fish House's existing Clarity VoIP account serves as the call ingestion point. Inbound calls to your restaurant's main number are routed via configured forwarding rules to the AI Receptionist endpoint. Call routing logic includes business hours scheduling, overflow handling, and emergency bypass rules so that staff can always regain manual control if needed.</div>
+<div class="platform-item" contenteditable="true">AI Voice Engine — Conversational Intelligence Layer: The AI conversation engine processes speech in real time, understands natural language order requests, references the Brady's Fish House menu database, and manages the full order dialogue. The voice model is configured with a persona and vocabulary tuned for a casual, friendly seafood restaurant environment — not a sterile corporate phone system. All dialogue logic, menu data, and order rules are stored and maintained in this layer.</div>
+<div class="platform-item" contenteditable="true">Order Integration Middleware — Data Pipeline Layer: A lightweight integration middleware receives the structured order data output by the AI upon call completion and formats it for injection into Brady's Fish House's ordering system. This middleware also handles call logging, confirmation message generation, and reporting data aggregation. It operates in real time with sub-second latency between call completion and order ticket creation.</div>
+</div>
+<div class="sandbox-box">
+<h3 contenteditable="true">Pre-Launch Testing Environment</h3>
+<p contenteditable="true">Before the Brady's Fish House AI Receptionist goes live, we operate a full sandbox environment that mirrors your production setup exactly. Test calls are placed using Clarity VoIP's test routing capabilities, and our team walks through dozens of order scenarios including full orders, partial orders, modifications, edge-case menu questions, and escalation triggers. Brad Smith and his team are invited to participate in the User Acceptance Testing phase to call the sandbox number themselves and experience the system firsthand, providing feedback before any real customer call is handled.</p>
+</div>
+<div class="call-flow">
+<div class="call-flow-title" contenteditable="true"></div>
+<div class="call-flow-entry" contenteditable="true"></div>
+<div class="flow-arrow"></div>
+<div class="call-flow-entry" contenteditable="true" style="font-size:12px;background:rgba(255,255,255,0.04);color:#94a3b8;font-weight:400;"></div>
+<div class="flow-arrow"></div>
+<div class="flow-options">
+<div class="flow-option">
+<h4 contenteditable="true"></h4>
+<div class="flow-time" contenteditable="true"></div>
+<div class="flow-step" contenteditable="true"></div>
+<div class="flow-step" contenteditable="true" style="color:#94a3b8;font-style:italic;"></div>
+<div class="flow-step" contenteditable="true"></div>
+<div style="margin-top:6px;">
+<div class="flow-action-item" contenteditable="true"></div>
+<div class="flow-action-item" contenteditable="true"></div>
+<div class="flow-action-item" contenteditable="true"></div>
+<div class="flow-action-item" contenteditable="true"></div>
+</div>
+<div class="flow-time" contenteditable="true"></div>
+<div class="flow-step" contenteditable="true"></div>
+<div style="margin-top:6px;">
+<div class="flow-action-item" contenteditable="true"></div>
+<div class="flow-action-item" contenteditable="true"></div>
+</div>
+</div>
+<div class="flow-option">
+<h4 contenteditable="true"></h4>
+<div class="flow-time" contenteditable="true"></div>
+<div class="flow-step" contenteditable="true"></div>
+<div style="margin-top:6px;">
+<div class="flow-action-item" contenteditable="true"></div>
+<div class="flow-action-item" contenteditable="true"></div>
+<div class="flow-action-item" contenteditable="true"></div>
+<div class="flow-action-item" contenteditable="true"></div>
+</div>
+<div class="flow-time" contenteditable="true"></div>
+<div class="flow-step" contenteditable="true"></div>
+<div style="margin-top:6px;">
+<div class="flow-action-item" contenteditable="true"></div>
+<div class="flow-action-item" contenteditable="true"></div>
+</div>
+</div>
+</div>
+<div class="flow-footer">
+<div class="flow-footer-note" contenteditable="true"></div>
+<div class="flow-arrow"></div>
+<div class="flow-footer-step" contenteditable="true"><br><span style="font-size:11px;color:#93c5fd;"></span></div>
+<div class="flow-arrow"></div>
+<div class="flow-footer-step" contenteditable="true"></div>
+<div class="flow-arrow"></div>
+<div class="flow-footer-step alert" contenteditable="true"><br><span style="font-size:11px;"></span></div>
+</div>
+</div>
+<h3 contenteditable="true" style="font-size:16px;font-weight:700;color:var(--navy);margin:28px 0 12px;"></h3>
+<p contenteditable="true" style="font-size:14px;line-height:1.75;margin-bottom:16px;"></p>
+<table class="zapier-table">
+<tbody><tr><td></td><td contenteditable="true">[To be completed]</td></tr>
+<tr><td></td><td contenteditable="true">[To be completed]</td></tr>
+<tr><td></td><td contenteditable="true">[To be completed]</td></tr>
+<tr><td></td><td contenteditable="true">[To be completed]</td></tr>
+<tr><td></td><td contenteditable="true">[To be completed]</td></tr>
+<tr><td></td><td contenteditable="true">[To be completed]</td></tr>
+<tr><td></td><td contenteditable="true">[To be completed]</td></tr>
+<tr><td></td><td contenteditable="true">[To be completed]</td></tr>
+</tbody></table>
+</div>
+
+<div class="section section-timeline">
+<div class="section-header">
+<div class="section-number"></div>
+<div class="section-title" contenteditable="true">Section 3: Implementation Timeline — 3 to 4 Weeks to Go-Live</div>
+</div>
+<p class="section-intro" contenteditable="true">The Brady's Fish House AI Receptionist can be designed, integrated, and deployed in three to four weeks. The implementation is structured in four focused phases, each with clear deliverables so Brad Smith always knows exactly where the project stands. The timeline is designed to minimize disruption to your restaurant's daily operations — the majority of the technical work happens behind the scenes, and your team's involvement is focused and predictable.</p>
+<div class="timeline">
+<div class="timeline-phase">
+<div class="phase-header">
+<div class="phase-number"></div>
+<div class="phase-title" contenteditable="true">Discovery &amp; Configuration Planning</div>
+<div class="phase-days" contenteditable="true">Days 1–5 · Week 1</div>
+</div>
+<div class="phase-body">
+<ul class="phase-items"><li contenteditable="true">Kickoff call with Brad Smith to review full menu, business hours, and ordering system details</li><li contenteditable="true">Collection of complete Brady's Fish House menu data including all items, modifiers, pricing, and seasonal specials</li><li contenteditable="true">Review of Clarity VoIP account configuration and call routing setup</li><li contenteditable="true">Documentation of ordering system integration requirements and API or webhook access</li><li contenteditable="true">Agreement on AI voice persona, greeting script, and call flow logic</li><li contenteditable="true">Definition of escalation rules and staff handoff procedures</li></ul>
+</div>
+</div>
+<div class="timeline-phase">
+<div class="phase-header">
+<div class="phase-number"></div>
+<div class="phase-title" contenteditable="true">Build &amp; Integration</div>
+<div class="phase-days" contenteditable="true">Days 6–14 · Weeks 2–3</div>
+</div>
+<div class="phase-body">
+<ul class="phase-items"><li contenteditable="true">AI Receptionist voice model configuration with Brady's Fish House menu database</li><li contenteditable="true">Development of conversational order flow dialogue and fallback handling</li><li contenteditable="true">Clarity VoIP SIP integration and call routing rule configuration</li><li contenteditable="true">Order middleware build and connection to Brady's Fish House ordering system</li><li contenteditable="true">Call logging and reporting dashboard setup</li><li contenteditable="true">Internal QA testing across 50+ order scenarios including edge cases and escalations</li></ul>
+</div>
+</div>
+<div class="timeline-phase">
+<div class="phase-header">
+<div class="phase-number"></div>
+<div class="phase-title" contenteditable="true">User Acceptance Testing &amp; Refinement</div>
+<div class="phase-days" contenteditable="true">Days 15–21 · Week 3</div>
+</div>
+<div class="phase-body">
+<ul class="phase-items"><li contenteditable="true">Sandbox environment delivered to Brad Smith for hands-on testing</li><li contenteditable="true">Facilitated UAT session where Brady's Fish House team places test calls and reviews order outputs</li><li contenteditable="true">Collection and incorporation of feedback on voice persona, menu accuracy, and call flow</li><li contenteditable="true">Clarity VoIP routing tested under simulated concurrent call load</li><li contenteditable="true">Final adjustments to dialogue logic, menu data, and integration behavior</li><li contenteditable="true">Sign-off from Brad Smith confirming readiness for production launch</li></ul>
+</div>
+</div>
+<div class="timeline-phase">
+<div class="phase-header">
+<div class="phase-number"></div>
+<div class="phase-title" contenteditable="true">Go-Live &amp; Stabilization</div>
+<div class="phase-days" contenteditable="true">Days 22–28 · Week 4</div>
+</div>
+<div class="phase-body">
+<ul class="phase-items"><li contenteditable="true">Production deployment of AI Receptionist on Brady's Fish House main phone number via Clarity VoIP</li><li contenteditable="true">Monitored soft launch period with real customer calls under close observation</li><li contenteditable="true">Daily check-ins with Brad Smith during first week of live operation</li><li contenteditable="true">Rapid-response issue resolution with same-day turnaround during stabilization period</li><li contenteditable="true">Delivery of onboarding documentation and reporting dashboard walkthrough</li><li contenteditable="true">Handoff to ongoing monthly support and monitoring</li></ul>
+</div>
+</div>
+</div>
+</div>
+
+<div class="section section-investment">
+<div class="section-header">
+<div class="section-number"></div>
+<div class="section-title" contenteditable="true">Section 4: Investment Summary</div>
+</div>
+<p class="section-intro" contenteditable="true">The investment to bring the AI Receptionist to Brady's Fish House is straightforward and reflects the full scope of design, build, integration, testing, and ongoing management of your phone order solution. The one-time setup fee covers everything required to get the system live — from Clarity VoIP integration to menu configuration to ordering system connection — so there are no surprise costs along the way. The monthly fee covers continuous AI operation, system monitoring, menu updates, reporting access, and ongoing support to keep your phone order pipeline running without interruption.</p>
+<table class="pricing-table">
+<thead>
+<tr>
+<th contenteditable="true"></th>
+<th contenteditable="true"></th>
+<th contenteditable="true"></th>
+<th contenteditable="true"></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><div class="line-item-title" contenteditable="true"></div></td>
+<td><div class="line-item-desc" contenteditable="true"></div></td>
+<td contenteditable="true">[To be completed]</td>
+<td contenteditable="true">[To be completed]</td>
+</tr>
+<tr>
+<td><div class="line-item-title" contenteditable="true"></div></td>
+<td><div class="line-item-desc" contenteditable="true"></div></td>
+<td contenteditable="true">[To be completed]</td>
+<td contenteditable="true">[To be completed]</td>
+</tr>
+<tr class="total-row">
+<td contenteditable="true">[To be completed]</td>
+<td><div class="line-item-desc" contenteditable="true"></div></td>
+<td contenteditable="true">[To be completed]</td>
+<td contenteditable="true">[To be completed]</td>
+</tr>
+<tr>
+<td><div class="line-item-title" contenteditable="true"></div></td>
+<td><div class="line-item-desc" contenteditable="true"></div></td>
+<td contenteditable="true">[To be completed]</td>
+<td contenteditable="true">[To be completed]</td>
+</tr>
+<tr>
+<td><div class="line-item-title" contenteditable="true"></div></td>
+<td><div class="line-item-desc" contenteditable="true"></div></td>
+<td contenteditable="true">[To be completed]</td>
+<td contenteditable="true">[To be completed]</td>
+</tr>
+<tr class="discount-row">
+<td contenteditable="true">[To be completed]</td>
+<td><div class="line-item-desc" contenteditable="true"></div></td>
+<td contenteditable="true">[To be completed]</td>
+<td contenteditable="true">[To be completed]</td>
+</tr>
+</tbody>
+</table>
+<div class="payment-note">
+<strong contenteditable="true"></strong>
+<span contenteditable="true">The $1,000 setup fee is due upon proposal acceptance and contract signing to initiate the project. The $500 monthly fee begins on the first billing date following the confirmed go-live date of the AI Receptionist. There are no long-term contracts — the monthly service operates on a rolling basis, giving Brady's Fish House full flexibility. All Clarity VoIP usage costs remain within your existing account and are not included in this pricing.</span>
+<br><br>
+<em contenteditable="true" style="font-size:12px;"></em>
+</div>
+</div>
+
+<div class="section section-why">
+<div class="section-header">
+<div class="section-number" style="background:var(--blue);"></div>
+<div class="section-title" contenteditable="true">Why Brady's Fish House Should Choose Us</div>
+</div>
+<p class="section-intro" contenteditable="true">Brad Smith could choose any number of generic AI phone answering services, but those solutions are built for anonymous businesses — not for a restaurant with a specific menu, a specific ordering workflow, a specific VoIP platform, and a specific customer base that expects the Brady's Fish House experience every time they call. Here is why we are the right partner for this project.</p>
+<div class="why-grid">
+<div class="why-card">
+<h3 contenteditable="true">🎣 Built for Restaurants, Not Repurposed for Them</h3>
+<p contenteditable="true">Our AI Receptionist solution is purpose-designed for the restaurant ordering environment, where menus are complex, customers ask unexpected questions, and accuracy directly affects kitchen operations. We understand the difference between a fried shrimp basket and a shrimp po'boy, and we build systems that do too — unlike off-the-shelf voice bots that are built for retail or appointment scheduling and stretched awkwardly into food service.</p>
+</div>
+<div class="why-card">
+<h3 contenteditable="true">📡 Deep Clarity VoIP Expertise</h3>
+<p contenteditable="true">We have hands-on experience integrating AI call solutions with Clarity VoIP specifically. We know how to configure SIP routing, manage call forwarding rules, and work within the Clarity platform to make the integration smooth and reliable. There is no trial-and-error with Brady's Fish House's phone system — we have done this before on this exact platform.</p>
+</div>
+<div class="why-card">
+<h3 contenteditable="true">⚡ Fast, Focused Deployment</h3>
+<p contenteditable="true">The three-to-four week timeline is not a guess — it reflects a refined implementation process that delivers without dragging. Brady's Fish House will not be waiting months for a solution while calls pile up. We move quickly, communicate clearly at every phase, and deliver a working system that Brad Smith can see and test before a single real customer uses it.</p>
+</div>
+<div class="why-card">
+<h3 contenteditable="true">🤝 Ongoing Partnership, Not a One-Time Sale</h3>
+<p contenteditable="true">The $500 monthly fee is not just for keeping the lights on — it buys Brady's Fish House an active partner who monitors system performance, pushes menu updates as your offerings evolve, reviews call logs for quality and accuracy, and proactively identifies improvements. If the Friday night rush starts generating escalation calls, we will know and we will fix it before Brad does.</p>
+</div>
+</div>
+</div>
+
+<div class="section section-getstarted">
+<div class="section-header">
+<div class="section-number" style="background:var(--green);font-size:18px;"></div>
+<div class="section-title" contenteditable="true">Ready to Stop Missing Calls? Here's How We Get Started</div>
+</div>
+<p class="section-intro" contenteditable="true">Getting the Brady's Fish House AI Receptionist from proposal to live calls is a focused five-step process. Brad Smith's involvement is concentrated in the early and testing phases, and the heavy lifting of building and integrating the system is handled entirely by our team. Here is exactly what happens from the moment this proposal is accepted.</p>
+<div class="get-started-steps">
+<div class="get-started-step">
+<div class="step-num"></div>
+<div class="step-content"><strong contenteditable="true">Step 1: Accept the Proposal and Sign the Agreement</strong><span contenteditable="true">Brad Smith reviews and signs the service agreement and submits the $1,000 setup fee to kick off the project officially. Within 24 hours of receipt, the project is assigned and a dedicated project lead is introduced who will be the single point of contact for the entire Brady's Fish House implementation.</span></div>
+</div>
+<div class="get-started-step">
+<div class="step-num"></div>
+<div class="step-content"><strong contenteditable="true">Step 2: Discovery Kickoff Call</strong><span contenteditable="true">Our team schedules a focused 60-to-90-minute kickoff call with Brad Smith to walk through Brady's Fish House's full menu, business hours, peak call periods, and ordering system details. We also review the Clarity VoIP account together to document the current call routing setup and confirm integration access. This single call gives us everything we need to build the system.</span></div>
+</div>
+<div class="get-started-step">
+<div class="step-num"></div>
+<div class="step-content"><strong contenteditable="true">Step 3: Build and Integration (Handled by Our Team)</strong><span contenteditable="true">Our team takes everything from the discovery call and builds the full AI Receptionist — menu database, conversation logic, Clarity VoIP integration, and ordering system connection. Brad Smith's involvement during this phase is minimal, limited to answering the occasional clarifying question. We operate on the agreed timeline and provide weekly status updates throughout.</span></div>
+</div>
+<div class="get-started-step">
+<div class="step-num"></div>
+<div class="step-content"><strong contenteditable="true">Step 4: Test It Yourself Before It Goes Live</strong><span contenteditable="true">Before any customer hears the AI, Brad Smith and his team get access to the sandbox environment and are encouraged to call it themselves — place orders, ask tricky questions, try to confuse it. This is Brady's Fish House's quality gate, and we incorporate all feedback rapidly. Nothing goes live until the team is satisfied with how it sounds and performs.</span></div>
+</div>
+<div class="get-started-step">
+<div class="step-num"></div>
+<div class="step-content"><strong contenteditable="true">Step 5: Go Live and Start Capturing Every Call</strong><span contenteditable="true">With UAT complete and approval given, we flip the switch on Clarity VoIP and the AI Receptionist begins handling real calls for Brady's Fish House. Our team monitors closely during the first week of live operation and is available same-day for any adjustments. From this point forward, the monthly support relationship begins and Brady's Fish House never misses another order call.</span></div>
+</div>
+</div>
+<div class="valid-through" contenteditable="true">This proposal is valid through <strong>July 04, 2026</strong>.</div>
+<div class="contact-block"><strong contenteditable="true">Questions before proceeding? Contact TrueFlow Business Automations:</strong><br><span contenteditable="true"><a href="mailto:jonathan@tflow-automations.com">jonathan@tflow-automations.com</a> &nbsp;·&nbsp; (678) 235-4818</span></div>
+<div class="signature-block" id="signatureBlock"><div id="sigPartyClient"><div class="sig-label" contenteditable="true">Signature — brad smith, bradys fish house</div><div class="sig-line" id="clientSigLine"></div><div class="sig-date" contenteditable="true" id="clientSigDate">Date: ___________________________</div></div><div><div class="sig-label" contenteditable="true">TrueFlow AI Solutions — Authorized Representative</div><div class="sig-line"></div><div class="sig-date" contenteditable="true">Date: ___________________________</div></div></div>
+</div>
+
+<div class="section-appendix">
+<div class="appendix-header">
+<h2 contenteditable="true">Appendix: Operational Safeguards and Compliance</h2>
+<p contenteditable="true">How We Protect Brady's Fish House, Your Customers, and Your Operations</p>
+</div>
+<div class="appendix-body">
+<div class="safeguard-block">
+<div class="safeguard-title" contenteditable="true"></div>
+<div class="safeguard-body">
+<p contenteditable="true"></p>
+<p contenteditable="true"><strong></strong></p>
+<p contenteditable="true"><strong></strong></p>
+<ul class="kill-switch-list">
+<li contenteditable="true"></li>
+<li contenteditable="true"></li>
+<li contenteditable="true"></li>
+<li contenteditable="true"></li>
+</ul>
+</div>
+</div>
+<div class="safeguard-block">
+<div class="safeguard-title" contenteditable="true"></div>
+<div class="safeguard-body">
+<p contenteditable="true"><strong></strong><strong></strong></p>
+<p contenteditable="true"><strong></strong></p>
+<ul class="kill-switch-list">
+<li contenteditable="true"></li>
+<li contenteditable="true"></li>
+<li contenteditable="true"></li>
+<li contenteditable="true"></li>
+</ul>
+</div>
+</div>
+<div class="safeguard-block">
+<div class="safeguard-title" contenteditable="true"></div>
+<div class="safeguard-body">
+<p contenteditable="true"></p>
+<table class="zapier-table">
+<tbody><tr><td></td><td contenteditable="true">[To be completed]</td></tr>
+<tr><td></td><td contenteditable="true">[To be completed]</td></tr>
+<tr><td></td><td contenteditable="true">[To be completed]</td></tr>
+<tr><td></td><td contenteditable="true">[To be completed]</td></tr>
+<tr><td></td><td contenteditable="true">[To be completed]</td></tr>
+<tr><td></td><td contenteditable="true">[To be completed]</td></tr>
+<tr><td></td><td contenteditable="true">[To be completed]</td></tr>
+<tr><td></td><td contenteditable="true">[To be completed]</td></tr>
+</tbody></table>
+<p contenteditable="true" style="margin-top:14px;font-size:13px;color:var(--muted);"></p>
+</div>
+</div>
+</div>
+</div>
+<div class="doc-footer" contenteditable="true">TrueFlow Business Automations &nbsp;·&nbsp; Proposal ID: TFLOW-2026-BFH-001 &nbsp;·&nbsp; Confidential</div>
+</div>
+  
+  <!-- Success Modal -->
+  <div class="modal-overlay" id="successModal">
+    <div class="success-modal">
+      <div class="success-icon">✓</div>
+      <h2>Excellent!</h2>
+      <p>We've received your approval.</p>
+      <div class="highlight">
+        <strong>TrueFlow has been notified.</strong><br><br>
+        We are preparing your Statement of Work (SOW) and formal contract now — keep an eye on your inbox shortly so we can get started!
+      </div>
+      <button class="btn-close-modal" onclick="closeModal()">Got It</button>
+    </div>
+  </div>
+  
+  <script>
+    // Proposal metadata for API calls
+    const PROPOSAL_DATA = {
+      id: '9cfba683-1489-481a-87ee-5cfbf1a9cc1d',
+      title: 'AI Generated Proposal',
+      clientName: 'brad smith',
+      clientCompany: 'bradys fish house',
+      notificationEmail: 'jnthnmc@gmail.com',
+      webhookUrl: 'https://hooks.zapier.com/hooks/catch/25457744/u7oc5tj/',
+      apiUrl: 'http://localhost/api',
+      version: '1775330998173'
+    };
+    
+    const STORAGE_KEY = 'proposal_accepted_' + PROPOSAL_DATA.id;
+    
+    // Disable editing in published version
+    document.querySelectorAll('[contenteditable]').forEach(el => el.removeAttribute('contenteditable'));
+    
+    // Check if already accepted (and version matches)
+    function checkAcceptanceState() {
+      const acceptedData = localStorage.getItem(STORAGE_KEY);
+      if (acceptedData) {
+        const data = JSON.parse(acceptedData);
+        // Check if this acceptance is for the current version
+        if (data.version === PROPOSAL_DATA.version) {
+          showAcceptedState(data.date);
+          return true;
+        } else {
+          // Clear old acceptance - proposal was updated/reset
+          localStorage.removeItem(STORAGE_KEY);
+        }
+      }
+      return false;
+    }
+    
+    // Show accepted state
+    function showAcceptedState(dateStr) {
+      const section = document.getElementById('acceptSection');
+      if (section) {
+        section.classList.add('accepted');
+        section.innerHTML = `
+          <h3>Proposal Accepted</h3>
+          <div class="accepted-info">
+            <div class="accepted-badge">✓ Accepted & Proceeding</div>
+            <div class="accepted-date">Accepted on ${dateStr}</div>
+          </div>
+        `;
+      }
+    }
+    
+    // Replace signature block with Accept button
+    const sigBlock = document.getElementById('signatureBlock');
+    if (sigBlock) {
+      sigBlock.outerHTML = `
+        <div class="accept-section" id="acceptSection">
+          <h3>Ready to Move Forward?</h3>
+          <button class="btn-accept" id="acceptBtn" onclick="handleAccept()">
+            ✓ Accept & Proceed
+          </button>
+        </div>
+      `;
+      
+      // Check if already accepted after creating the section
+      checkAcceptanceState();
+    }
+    
+    async function handleAccept() {
+      const btn = document.getElementById('acceptBtn');
+      const modal = document.getElementById('successModal');
+      const acceptDate = new Date();
+      const dateStr = acceptDate.toLocaleDateString('en-US', { 
+        year: 'numeric', month: 'long', day: 'numeric', 
+        hour: '2-digit', minute: '2-digit' 
+      });
+      
+      // Save to localStorage with version
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({
+        accepted: true,
+        date: dateStr,
+        timestamp: acceptDate.toISOString(),
+        version: PROPOSAL_DATA.version
+      }));
+      
+      // Show accepted state
+      showAcceptedState(dateStr);
+      
+      // Show success modal
+      modal.classList.add('active');
+      
+      // Send notification via webhook (Zapier/Power Automate) or fallback to backend API
+      try {
+        const pageUrl = window.location.href;
+        const payload = {
+          proposal_id: PROPOSAL_DATA.id,
+          title: PROPOSAL_DATA.title,
+          client_name: PROPOSAL_DATA.clientName,
+          client_company: PROPOSAL_DATA.clientCompany,
+          notification_email: PROPOSAL_DATA.notificationEmail,
+          accepted_at: acceptDate.toISOString(),
+          page_url: pageUrl
+        };
+
+        if (PROPOSAL_DATA.webhookUrl) {
+          // Use webhook (Zapier, Power Automate, etc.) — works from any domain
+          // Send as URL-encoded form data to avoid CORS preflight (Zapier doesn't handle OPTIONS)
+          var formBody = new URLSearchParams(payload);
+          await fetch(PROPOSAL_DATA.webhookUrl, {
+            method: 'POST',
+            body: formBody
+          });
+          console.log('Acceptance notification sent via webhook');
+        } else {
+          // Fallback to backend API (only works if backend is reachable)
+          await fetch(PROPOSAL_DATA.apiUrl + '/proposals/' + PROPOSAL_DATA.id + '/accepted', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+          console.log('Acceptance notification sent via backend API');
+        }
+      } catch (err) {
+        console.log('Could not send notification (acceptance still recorded locally):', err);
+      }
+    }
+    
+    function closeModal() {
+      document.getElementById('successModal').classList.remove('active');
+    }
+    
+    // Close modal on overlay click
+    document.getElementById('successModal').onclick = function(e) {
+      if (e.target === this) closeModal();
+    };
+  </script>
+</body>
+</html>
